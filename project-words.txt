@@ -603,6 +603,7 @@ unpushed
 unrecognised
 unrepresentable
 unreproduced
+unresolve
 unreviewed
 unseparated
 unspawned
