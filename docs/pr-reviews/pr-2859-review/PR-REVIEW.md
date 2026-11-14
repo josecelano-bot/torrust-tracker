@@ -85,7 +85,7 @@ was processed.
 | F28 | review-finding:pr-2859-f28 | Human | Minor | testing | ORIGINAL | FIXED | RESOLVED |
 | F29 | review-finding:pr-2859-f29 | Human | Minor | testing | ORIGINAL | FIXED | RESOLVED |
 | F30 | review-finding:pr-2859-f30 | Human | Nit | documentation | ORIGINAL | FIXED | RESOLVED |
-| F31 | review-finding:pr-2859-f31 | Human | Minor | documentation | RE_RAISE_OF:F26 | FIXED | RESOLVED |
+| F31 | review-finding:pr-2859-f31 | Human | Minor | documentation | ORIGINAL | FIXED | RESOLVED |
 
 ## Finding Details
 
