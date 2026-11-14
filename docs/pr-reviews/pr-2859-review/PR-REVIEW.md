@@ -506,7 +506,7 @@ was processed.
 - Current-tree verification: `grep -n "^| F31" docs/pr-reviews/pr-2859-review/PR-REVIEW.md` shows `ORIGINAL`.
 - Resolution reference: docs(pr-reviews): [#2393] mark F31 as an original finding in the PR 2859 audit
 - Follow-up PR URL: N/A
-- Reply URL: <REPLY_F32>
+- Reply URL: <https://github.com/torrust/torrust-tracker/pull/2859#discussion_r4573429630>
 
 ## Processing Log
 
