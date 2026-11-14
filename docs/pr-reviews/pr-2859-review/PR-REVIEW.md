@@ -524,6 +524,11 @@ was processed.
 - 2026-11-14 11:34 UTC - After the audit with the round-3 reply URLs was committed and the validator
   exited `0` (30 rows, 0 failures), the six round-3 threads were resolved; a GraphQL refresh shows 0
   unresolved threads out of 30.
+- 2026-11-14 11:49 UTC - Round 4. da2ce7 approved the head ending in
+  `docs(pr-reviews): [#2393] log the resolution of the third review round` at 11:43:44Z, with one
+  non-blocking inline thread (F31). The fix and the audit row were pushed, the reply was posted, the
+  audit with its URL was committed with the validator at `0` failures (31 rows), and the thread was
+  resolved; a GraphQL refresh shows 0 unresolved threads out of 31.
 
 ## Completion Rules
 
