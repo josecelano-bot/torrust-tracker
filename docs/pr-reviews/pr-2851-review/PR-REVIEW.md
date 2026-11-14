@@ -77,6 +77,8 @@ Round 12 is Copilot's review `5903247803` (F59 and AUDIT-001, reviewer-provided 
 the body; the comments carry `[Minor]` and `[Nit]` brackets, which are used.
 Round 13 is the approving review `5903321950` of `da2ce7` (F61, audit-local ID; reviewer's own F59, which collides,
 recorded as the original), on the head that carried the round 12 audit. F60 is not used.
+Round 14 is the approving review `5904321921` of `da2ce7` (F62 and F63, reviewer-provided IDs, which do not collide), on
+the head of the second rebase, which carried the round 13 audit.
 
 | Finding ID | Review finding reference | Author class | Severity | Category | Relationship | Disposition | Thread state |
 | ---------- | ------------------------ | ------------ | -------- | -------- | ------------ | ----------- | ------------ |
@@ -141,6 +143,8 @@ recorded as the original), on the head that carried the round 12 audit. F60 is n
 | F59 | review-finding:pr-2851-f59 | Copilot | Minor | documentation | ORIGINAL | FIXED | RESOLVED |
 | AUDIT-001 | review-finding:pr-2851-audit-001 | Copilot | Nit | documentation | ORIGINAL | FIXED | RESOLVED |
 | F61 | review-finding:pr-2851-f61 | Human | Nit | metadata | ORIGINAL | FIXED | RESOLVED |
+| F62 | review-finding:pr-2851-f62 | Human | Minor | documentation | ORIGINAL | FIXED | RESOLVED |
+| F63 | review-finding:pr-2851-f63 | Human | Nit | documentation | ORIGINAL | FIXED | RESOLVED |
 
 ## Finding Details
 
@@ -937,6 +941,32 @@ recorded as the original), on the head that carried the round 12 audit. F60 is n
 - Follow-up PR URL: N/A
 - Reply URL: https://github.com/torrust/torrust-tracker/pull/2851#discussion_r4572725832
 
+### F62 - The second rebase is recorded nowhere
+
+- PR number: 2851
+- Source review ID: 5904321921
+- Reviewer finding ID: N/A
+- Source URL: https://github.com/torrust/torrust-tracker/pull/2851#discussion_r4573491069
+- Concern: The force push at 12:19:04Z rebased all commits onto `develop`, but the description still said the branch was rebased once, no log entry recorded the rewrite, and the commit ids that review comments cite were mapped to subjects nowhere.
+- Solution: The History section of the description states the second rebase and its reason; a pull request comment maps each cited id to its commit subject, so this record cites no branch commit id; an appended log entry records the force push and points to that comment.
+- Current-tree verification: Read the log entry stamped 12:28 and the description; each subject in the mapping comment names exactly one commit on the branch.
+- Resolution reference: docs(pr-reviews): record the second rebase in the review audit of PR #2851
+- Follow-up PR URL: N/A
+- Reply URL: https://github.com/torrust/torrust-tracker/pull/2851#discussion_r4573508877
+
+### F63 - After the second rebase, the log's `%cI` times no longer hold
+
+- PR number: 2851
+- Source review ID: 5904321921
+- Reviewer finding ID: N/A
+- Source URL: https://github.com/torrust/torrust-tracker/pull/2851#discussion_r4573491066
+- Concern: The second rebase set every committer time to 12:12:28Z to 12:12:58Z, so the entries that cite `git log --format=%cI` or give "committed at" times no longer match the branch; `%aI` keeps the original times, as F22 recorded for the first rebase.
+- Solution: An appended correction in the processing log says so; no earlier entry was rewritten.
+- Current-tree verification: Read the correction stamped 12:28 in the processing log.
+- Resolution reference: docs(pr-reviews): record the second rebase in the review audit of PR #2851
+- Follow-up PR URL: N/A
+- Reply URL: https://github.com/torrust/torrust-tracker/pull/2851#discussion_r4573508998
+
 ## Processing Log
 
 - 2026-11-12 18:05 UTC - Started round 1 for review `5879517733` (submitted 18:02:39Z, forge `submitted_at`). Checked F1 to F7 against the tree.
@@ -972,6 +1002,7 @@ recorded as the original), on the head that carried the round 12 audit. F60 is n
 - 2026-11-14 09:07 UTC - Round 13: the approving review `5903321950` of `da2ce7` (submitted 09:00:28Z, forge `submitted_at`) at the head that carried the round 12 audit, with one Nit, reviewer's own F59, reassigned F61. The fix was committed as `docs(pr-reviews): keep the reviewer-provided IDs of round 12 in the audit of PR #2851` (authored and committed 09:03:22Z) and its push had landed before the reply (`git ls-remote` of the fork matched the local head). Replied on the thread at 09:06:51Z (forge `created_at`). The thread is resolved by its own thread id after this entry's commit is pushed.
 - 2026-11-14 12:28 UTC - Second rebase: after the approval of round 13, the pull request conflicted with `develop` in the sub-issue table of EPIC #1347, because #2852 changed its row 11. The branch was rebased onto `develop`; the conflict was resolved by keeping the row of `develop` and the branch's #2838 row after it, and every commit was replayed in the same order with the same changes. The forge timeline records the force push at 12:19:04Z (`head_ref_force_pushed`, actor `josecelano-bot`; pushed with `git-bot-push --force-with-lease`). The commit ids that review comments cite no longer name commits on the branch. The pull request comment https://github.com/torrust/torrust-tracker/pull/2851#issuecomment-6877254223 (forge `created_at` 12:27:16Z) maps each of them to its commit subject, so that this record cites no branch commit id. The History section of the pull request description now states the second rebase.
 - 2026-11-14 12:28 UTC - Correction for F63: the second rebase set the committer time of all 52 commits to 12:12:28Z to 12:12:58Z, so `git log --format=%cI` no longer gives the times that the entries citing it give, and a "committed at" time that differs from the author time can no longer be read from the branch. `git log --format=%aI` keeps the original author times. This is the effect that the correction for F22 recorded for the first rebase. No earlier entry is rewritten.
+- 2026-11-14 12:32 UTC - Round 14: the approving review `5904321921` of `da2ce7` (submitted 12:25:15Z, forge `submitted_at`) at the head of the second rebase, with F62 (Minor) and F63 (Nit). The mapping comment was posted at 12:27:16Z and the description edited before the fix commit `docs(pr-reviews): record the second rebase in the review audit of PR #2851` (authored and committed 12:28:05Z), whose push had landed before the replies (`git ls-remote` of the fork matched the local head). Replied on both threads at 12:32:15Z and 12:32:17Z (forge `created_at`). The threads are resolved one by one, by their own thread id, after this entry's commit is pushed.
 
 ## Completion Rules
 
