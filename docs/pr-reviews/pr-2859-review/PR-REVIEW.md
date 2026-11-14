@@ -49,7 +49,9 @@ second da2ce7 review and F23 to F24 from the second Copilot review, both on the 
 come from the third da2ce7 review, on the head ending in
 `docs(pr-reviews): [#2393] log the resolution of both review rounds`. F31 comes from the fourth
 da2ce7 review (APPROVED), on the head ending in
-`docs(pr-reviews): [#2393] log the resolution of the third review round`. Most findings of the first
+`docs(pr-reviews): [#2393] log the resolution of the third review round`. F32 comes from the fifth
+da2ce7 review (APPROVED), on the head ending in
+`docs(pr-reviews): [#2393] log the resolution of the fourth review round`. Most findings of the first
 round concern the shared port helper, which the maintainer's scope change removed before that round
 was processed.
 
@@ -86,6 +88,7 @@ was processed.
 | F29 | review-finding:pr-2859-f29 | Human | Minor | testing | ORIGINAL | FIXED | RESOLVED |
 | F30 | review-finding:pr-2859-f30 | Human | Nit | documentation | ORIGINAL | FIXED | RESOLVED |
 | F31 | review-finding:pr-2859-f31 | Human | Minor | documentation | ORIGINAL | FIXED | RESOLVED |
+| F32 | review-finding:pr-2859-f32 | Human | Nit | metadata | ORIGINAL | FIXED | RESOLVED |
 
 ## Finding Details
 
@@ -491,6 +494,19 @@ was processed.
 - Resolution reference: docs(issues): [#2393] file check 3 under V4 and log the third review round
 - Follow-up PR URL: N/A
 - Reply URL: <https://github.com/torrust/torrust-tracker/pull/2859#discussion_r4573381707>
+
+### F32 - F31 marked as a re-raise of an unrelated row
+
+- PR number: 2859
+- Source review ID: 5904229909
+- Reviewer finding ID: F29
+- Source URL: <https://github.com/torrust/torrust-tracker/pull/2859#discussion_r4573413481>
+- Concern: F31's Relationship was `RE_RAISE_OF:F26`, but this record's F26 is the split-table finding; the reviewer's `F26` was a new finding with a colliding id.
+- Solution: F31's Relationship is `ORIGINAL`. The reviewer's id stays in its `Reviewer finding ID` field.
+- Current-tree verification: `grep -n "^| F31" docs/pr-reviews/pr-2859-review/PR-REVIEW.md` shows `ORIGINAL`.
+- Resolution reference: docs(pr-reviews): [#2393] mark F31 as an original finding in the PR 2859 audit
+- Follow-up PR URL: N/A
+- Reply URL: <REPLY_F32>
 
 ## Processing Log
 
