@@ -47,7 +47,9 @@ collide with the Copilot rows and are kept as `Reviewer finding ID`. F16 to F22 
 second da2ce7 review and F23 to F24 from the second Copilot review, both on the head ending in
 `fix(tests): [#2393] ignore racing port tests and rewrite those that need no real port`. F25 to F30
 come from the third da2ce7 review, on the head ending in
-`docs(pr-reviews): [#2393] log the resolution of both review rounds`. Most findings of the first
+`docs(pr-reviews): [#2393] log the resolution of both review rounds`. F31 comes from the fourth
+da2ce7 review (APPROVED), on the head ending in
+`docs(pr-reviews): [#2393] log the resolution of the third review round`. Most findings of the first
 round concern the shared port helper, which the maintainer's scope change removed before that round
 was processed.
 
@@ -83,6 +85,7 @@ was processed.
 | F28 | review-finding:pr-2859-f28 | Human | Minor | testing | ORIGINAL | FIXED | RESOLVED |
 | F29 | review-finding:pr-2859-f29 | Human | Minor | testing | ORIGINAL | FIXED | RESOLVED |
 | F30 | review-finding:pr-2859-f30 | Human | Nit | documentation | ORIGINAL | FIXED | RESOLVED |
+| F31 | review-finding:pr-2859-f31 | Human | Minor | documentation | RE_RAISE_OF:F26 | FIXED | RESOLVED |
 
 ## Finding Details
 
@@ -475,6 +478,19 @@ was processed.
 - Resolution reference: docs(issues): [#2393] count three racing shapes in the inventory, the plan and AC1
 - Follow-up PR URL: N/A
 - Reply URL: <https://github.com/torrust/torrust-tracker/pull/2859#discussion_r4573316753>
+
+### F31 - Check 3 filed under V1 and stale spec stamps
+
+- PR number: 2859
+- Source review ID: 5904165040
+- Reviewer finding ID: F26
+- Source URL: <https://github.com/torrust/torrust-tracker/pull/2859#discussion_r4573364572>
+- Concern: Check 3 was inserted before the first `#### Conclusion` heading of the evidence file, which belongs to V1, and the spec had no progress-log entry for the third round; both `last-updated-utc` values predated it.
+- Solution: Check 3 moved under V4, before its conclusion. The spec log has an entry for the third round, and both `last-updated-utc` values were refreshed. The insertion matched the first `#### Conclusion` heading instead of V4's; that is how it landed under V1.
+- Current-tree verification: `grep -n "^#### \|^### V" docs/issues/open/2393-2392-test-port-allocation-races/manual-verification-evidence.md` lists Check 3 after Recheck 2 and before V4's conclusion.
+- Resolution reference: docs(issues): [#2393] file check 3 under V4 and log the third review round
+- Follow-up PR URL: N/A
+- Reply URL: <REPLY_F31>
 
 ## Processing Log
 
