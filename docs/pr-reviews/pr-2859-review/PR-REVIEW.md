@@ -490,7 +490,7 @@ was processed.
 - Current-tree verification: `grep -n "^#### \|^### V" docs/issues/open/2393-2392-test-port-allocation-races/manual-verification-evidence.md` lists Check 3 after Recheck 2 and before V4's conclusion.
 - Resolution reference: docs(issues): [#2393] file check 3 under V4 and log the third review round
 - Follow-up PR URL: N/A
-- Reply URL: <REPLY_F31>
+- Reply URL: <https://github.com/torrust/torrust-tracker/pull/2859#discussion_r4573381707>
 
 ## Processing Log
 
