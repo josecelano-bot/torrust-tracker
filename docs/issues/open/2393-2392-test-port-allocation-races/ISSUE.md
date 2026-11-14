@@ -9,7 +9,7 @@ github-issue: 2393
 spec-path: docs/issues/open/2393-2392-test-port-allocation-races/ISSUE.md
 branch: "2392-test-isolation-spec"
 related-pr: 2397
-last-updated-utc: "2026-11-14 10:45"
+last-updated-utc: "2026-11-14 11:45"
 semantic-links:
   skill-links:
     - create-issue
@@ -236,6 +236,12 @@ Status values: `TODO`, `IN_PROGRESS`, `BLOCKED`, `DONE`.
   health-check contract tests, and restated the bug-fix sections. The first 150-run recheck found
   the health-check self-collision (2 failures); the second, on the head ending in `fix(tests): [#2393] start the health-check API before stopping the probed service`, passed 150 of 150
   runs. Eighteen ignored tests await the maintainer's decision (T5).
+- 2026-11-14 11:45 UTC - Claude Code (Claude Opus 5.5) - Addressed the third review round on PR 2859: ignored
+  the three health-check contract tests that probe a released port, let the launcher test's main
+  contract run again with its socket-release assertion moved to an ignored companion, counted three
+  racing shapes, and replaced PR-branch commit ids with commit subjects. Twenty-one ignored tests
+  await the maintainer's decision (T5); four tests are rewritten. Check 3 in V4: 20 full-suite runs
+  passed.
 
 ## Acceptance Criteria
 
