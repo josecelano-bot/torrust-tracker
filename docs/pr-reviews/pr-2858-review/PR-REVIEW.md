@@ -17,7 +17,7 @@ Source: pull-request reviews and inline review threads for https://github.com/to
 The PR author owns this tracked audit record. Reviewers, including repository review agents,
 deliver findings through GitHub and have no repository-artifact obligation.
 
-- Post-merge workflow approval: NA (not merged)
+- Post-merge workflow approval: NA (PR #2858 merged; its last finding, F13, was fixed in close-out PR #2860)
 
 ## Status Values
 
@@ -225,7 +225,7 @@ deliver findings through GitHub and have no repository-artifact obligation.
 - Solution: Corrected in the close-out PR, which edits both files anyway; the reply said so to avoid another push on an approved head.
 - Current-tree verification: Read the Progress Log and the evidence frontmatter in `docs/issues/closed/2844-1488-si-25-remove-unused-error-variants/`.
 - Resolution reference: chore(issues): [#2844] archive the closed issue spec to docs/issues/closed
-- Follow-up PR URL: NA
+- Follow-up PR URL: https://github.com/torrust/torrust-tracker/pull/2860
 - Reply URL: https://github.com/torrust/torrust-tracker/pull/2858#discussion_r4569921061
 
 ## Processing Log

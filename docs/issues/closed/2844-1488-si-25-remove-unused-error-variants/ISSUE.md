@@ -9,7 +9,7 @@ github-issue: 2844
 spec-path: docs/issues/closed/2844-1488-si-25-remove-unused-error-variants/ISSUE.md
 branch: "2844-remove-unused-error-variants"
 related-pr: 2858
-last-updated-utc: "2026-11-14 09:15"
+last-updated-utc: "2026-11-14 12:38"
 semantic-links:
   skill-links:
     - create-issue
@@ -26,7 +26,7 @@ semantic-links:
 
 # Issue #2844 - Remove the Unused Public Shutdown Error Variants (SI-25)
 
-> **EPIC position**: Roadmap row 22, sub-issue SI-25 of [EPIC #1488](../1488-overhaul-tracker-shutdown/ISSUE.md).
+> **EPIC position**: Roadmap row 22, sub-issue SI-25 of [EPIC #1488](../../open/1488-overhaul-tracker-shutdown/ISSUE.md).
 > A follow-up of [SI-19](../../closed/2801-1488-si-19-remove-legacy-shutdown-api/ISSUE.md).
 > Implementation order 1 of 4 (SI-25, SI-26, SI-27, SI-28). Priority p3, but it must land before the
 > first publish of the workspace crates (#2583, see Dependencies).
@@ -160,8 +160,7 @@ Sign every commit with GPG.
 - 2026-11-13 22:30 UTC - AI agent (Claude Sonnet 5.5) - Implemented on `2844-remove-unused-error-variants`. Versioning decision (maintainer, in chat): no version bump; the three packages stay at 0.1.0 and the removal ships in the release notes of the first publish (#2583). No changelog or migration note elsewhere. Evidence in `manual-verification-evidence.md`.
 - 2026-11-13 22:52 UTC - AI agent (Claude Sonnet 5.5) - PR #2858 review round 1: fixed the two stale `Error` doc comments, the PR title, `related-pr`, and the M2/M3 evidence (commands, stamps, six listeners).
 - 2026-11-13 23:06 UTC - AI agent (Claude Sonnet 5.5) - PR #2858 review round 2: added the review audit record `docs/pr-reviews/pr-2858-review/PR-REVIEW.md` (late start), stated the trimming of the M2 output, moved `last-updated-utc`.
-
-- 2026-11-14 09:15 UTC - AI agent (Claude Sonnet 5.5) - PR #2858 merged (9e5d3ff95) after three review rounds (13 threads, all fixed). No implementation retrospective was needed: the removal found nothing beyond the spec. Closed out; the spec moves to `docs/issues/closed/`.
+- 2026-11-14 09:15 UTC - AI agent (Claude Sonnet 5.5) - PR #2858 merged (9e5d3ff95) after four review rounds (14 threads; the last nit, F13, is fixed in this close-out). No implementation retrospective was needed: the removal found nothing beyond the spec. Closed out; the spec moves to `docs/issues/closed/`.
 
 ## Acceptance Criteria
 
