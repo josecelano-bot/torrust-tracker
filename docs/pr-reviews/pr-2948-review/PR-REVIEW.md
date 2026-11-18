@@ -1,7 +1,7 @@
 ---
 pr-number: 2948
 pr-url: https://github.com/torrust/torrust-tracker/pull/2948
-last-updated-utc: "2026-11-18 14:21"
+last-updated-utc: "2026-11-18 14:39"
 ---
 
 <!-- skill-link: process-pr-review -->
@@ -45,11 +45,14 @@ deliver findings through GitHub and have no repository-artifact obligation.
 
 Round 1 is the approving review `5958211073` of `da2ce7` (F1 and F2, reviewer-provided IDs) on the first head; Copilot's
 review `5958205525` on the same head recommends approval with no findings and has no row.
+Round 2 is the review `5958517782` of `da2ce7` (COMMENTED, F20, reviewer-provided ID) on the head that carried the round 1
+fixes, before the audit commit reached the branch.
 
 | Finding ID | Review finding reference | Author class | Severity | Category | Relationship | Disposition | Thread state |
 | ---------- | ------------------------ | ------------ | -------- | -------- | ------------ | ----------- | ------------ |
 | F1 | `review-finding:pr-2948-f1` | Human | Minor | correctness | ORIGINAL | FIXED | RESOLVED |
 | F2 | `review-finding:pr-2948-f2` | Human | Minor | documentation | ORIGINAL | FIXED | RESOLVED |
+| F20 | `review-finding:pr-2948-f20` | Human | Minor | documentation | ORIGINAL | FIXED | RESOLVED |
 
 ## Finding Details
 
@@ -79,10 +82,25 @@ review `5958205525` on the same head recommends approval with no findings and ha
 - Follow-up PR URL: N/A
 - Reply URL: https://github.com/torrust/torrust-tracker/pull/2948#discussion_r4615430354
 
+### F20 - The two answered threads of this pull request have no review audit record
+
+- PR number: 2948
+- Source review ID: 5958517782
+- Reviewer finding ID: F20
+- Source URL: https://github.com/torrust/torrust-tracker/pull/2948#discussion_r4615505372
+- Concern: At the reviewed head `0d9309651` the threads of F1 and F2 were answered and resolved, but the branch carried no `docs/pr-reviews/pr-2948-review/PR-REVIEW.md`.
+- Solution: The record was written before the replies and validated before the threads were resolved, but its first commit attempt failed the pre-commit gate (markdownlint MD038), so it reached the branch only with the next push, after the reviewed head. This entry and the log record the delay.
+- Current-tree verification: `git log --format='%cI %s' -- docs/pr-reviews/pr-2948-review/PR-REVIEW.md` shows the record's first commit at 14:24:54Z, pushed at 14:28:10Z; the Processing Log gives the validator run at 14:20:51Z and the resolutions by 14:20:55Z.
+- Resolution reference: `docs(pr-reviews): [#2904] record round 1 in the review audit of PR #2948`
+- Follow-up PR URL: N/A
+- Reply URL: https://github.com/torrust/torrust-tracker/pull/2948#discussion_r4615661680
+
 ## Processing Log
 
 - 2026-11-18 14:17 UTC - Started audit, before the replies of round 1.
 - 2026-11-18 14:21 UTC - Round 1: the approving review `5958211073` of `da2ce7` (submitted 14:07:07Z, forge `submitted_at`) with two findings. The fixes were committed at 14:14:30Z and 14:16:14Z (`git log --format=%cI`, in UTC) and pushed; `git ls-remote` showed the fork branch at the local head at 14:20:24Z (`date -u`). The two replies were posted at 14:20:34Z and 14:20:36Z (forge `created_at`), after the push. `validate-audit-record.py --pr-number 2948 --base torrust/develop`, with its `gh` calls made through `gh-bot`, exited 0 (2 rows, 0 failures) at 14:20:51Z; the two threads were then resolved by their thread IDs by 14:20:55Z, and a GraphQL refresh showed 0 unresolved threads.
+- 2026-11-18 14:39 UTC - Late commit of this record: its first commit attempt at 14:21 failed the pre-commit gate (markdownlint MD038 on a code span holding a semicolon and a space), so the round 1 entry above was committed only at 14:24:54Z (`git log --format=%cI`, in UTC) and pushed at 14:28:10Z (`git ls-remote`, `date -u`), after the replies and resolutions it records.
+- 2026-11-18 14:39 UTC - Round 2: the review `5958517782` of `da2ce7` (COMMENTED, submitted 14:25:42Z, forge `submitted_at`), on `0d9309651`, with one finding, recorded as F20: the record was missing at that head. It reached the branch at the next push, 14:28:10Z, before the reply, posted at 14:36:31Z (forge `created_at`). `validate-audit-record.py --pr-number 2948 --base torrust/develop`, with its `gh` calls made through `gh-bot`, exited 0 (3 rows, 0 failures) at 14:39:46Z; the thread of F20 was then resolved by its thread ID at 14:39:48Z.
 
 <!-- Copied verbatim into each audit record. -->
 
