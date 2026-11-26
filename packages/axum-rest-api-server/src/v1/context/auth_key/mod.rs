@@ -99,7 +99,7 @@
 //! **Example error response** `500`
 //!
 //! ```text
-//! Unhandled rejection: Err { reason: "failed to delete key: Failed to remove record from Sqlite3 database, error-code: 0" }
+//! Unhandled rejection: Err { reason: "failed to delete key: internal tracker error (request id: 6f1f4b0e-5c2a-4a53-9d5f-0a1b2c3d4e5f)" }
 //! ```
 //!
 //! > **NOTICE**: a `500` status code will be returned and the body is not a

@@ -3,7 +3,7 @@ name: handle-errors-in-code
 description: "Write Rust error types: thiserror enums over anyhow, with context and actionable messages, and no source locations. Use when adding error types or handling a Result."
 metadata:
   author: torrust
-  version: "1.0"
+  version: "1.1"
 ---
 
 # Handling Errors in Code
@@ -73,8 +73,9 @@ Errors must not record or print source locations. See
 - `Display` states what failed and the offending input, never a source path. A secret (an
   authentication key, a token, a password) is never echoed or kept in the error: name the parameter
   and the expected format instead (see the `handle-secrets` skill).
-- Text sent to a client is the error's own message; do not format a source error from a crate the
-  workspace does not control into client text.
+- Text sent to a client is chosen by the protocol layer from the class and the variant of the
+  error, not from its `Display` chain; see "Text Sent to a Client" below. Never format a source error
+  from a crate the workspace does not control into client text.
 - For developer diagnostics, emit a `tracing` event at the site; it records file and line on the
   server only.
 - `#[track_caller]` is allowed only in test helpers and assertion helpers.
@@ -99,6 +100,44 @@ pub enum KeyError {
 
 Existing `location` fields and `LocatedError` uses are being removed by EPIC #2912; do not add new
 ones.
+
+## Text Sent to a Client
+
+What the HTTP tracker, the UDP tracker, the REST API and the health-check API tell a client when a
+request fails is decided by
+[ADR 20261125175726](../../../docs/adrs/20261125175726_tell_clients_what_they_can_act_on_and_keep_failure_detail_on_the_server.md),
+which amends rule 4 of the ADR above. Its tables list every current and proposed text; this is the
+rule to follow when you add or change a reply:
+
+- **Classify the failure first.** A *bad request* (the client's own input) says what is wrong and
+  what is expected. A *refusal* (not whitelisted, key missing or expired, wrong token) says what was
+  refused and what the client can do. An *internal failure* (a database that is down, a state the code
+  did not expect) is the tracker's fault: one fixed sentence that names the operation and the request
+  id, for example `Internal tracker error: the announce could not be completed, try again later
+  (request id: <id>)`, and nothing from the error or its source.
+- **A cause the code can tell and the client caused is not an internal failure**, even when a lower
+  layer reports it as an error (a duplicate authentication key says so).
+- **One sentence, not the Rust error tree.** The protocol layer builds the text from the variant
+  (`error_mapping.rs` for the HTTP tracker, `Error::client_message` for UDP, the response functions
+  of the REST API, the probes of the health-check API). Never forward `Display`, `Debug`, a type name,
+  a database driver text, a library text (`serde`, `axum`, `reqwest`) or a server timing value.
+- **Echo a client value only within the limits:** at most 64 characters as sent, then `...`, escaped
+  with `char::escape_debug` after the cut, and never a secret (use `echo` of `http-protocol` or of the
+  REST API server).
+- **The detail goes to the server.** Every internal failure emits one `ERROR` event with the full
+  error (its source included) and the request id, inside the request span (the span declares
+  `request_id`; `torrust_tracker_axum_server::request_id::current_request_id` reads it below the
+  handlers). A secret is never in that event either (the `handle-secrets` skill).
+- **No reply text is a contract.** Clients rely on the signal each protocol defines (`failure
+  reason`, UDP action 3, the status code); tests pin texts to keep the policy, not to promise them.
+- **Event payloads follow the rules of a log**, not of a reply: they may carry the detail, never a
+  secret, and state what happened whatever the client was told.
+- **Statuses of REST API v1 stay**; a status that is wrong in v1 is corrected by the v2 error model
+  (EPIC #144), which follows the same three classes.
+
+A test for a client text has the shape the existing ones show: build the cause with a unique marker
+string in its source, assert the reply does not contain the marker, and for an internal failure also
+that the log holds the detail and the same request id.
 
 ## Unwrap and Expect Policy
 
@@ -142,3 +181,5 @@ that a new variant is a deliberate breaking change. See [ADR 20261005145329](../
 - [ ] No vague messages like "invalid input" or "error occurred"
 - [ ] No `.unwrap()` in production code (tests and doc examples are fine)
 - [ ] No `location` field, no `Location::caller()` and no `torrust-located-error` (see the ADR above)
+- [ ] A reply to a client holds no driver text, library text, type name or server clock; an internal
+      failure names the operation and the request id, and its detail is in an `ERROR` event

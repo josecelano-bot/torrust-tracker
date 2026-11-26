@@ -297,10 +297,10 @@ Use page refresh between steps to observe the counter changes.
 
 If announce fails with peer-id validation, check peer-id length.
 
-Example failure output captured during validation (peer_id had 21 bytes):
+Example failure output for a `peer_id` of 21 bytes (text as the client error text policy sets it):
 
 ```text
-d14:failure reason269:Bad request. Cannot parse query params for announce request: invalid param value HTTPCLIENTPEERID00001 for peer_id in too many bytes for peer id: got 21 bytes, expected 20 ...e
+d14:failure reason123:Invalid announce request: invalid param value HTTPCLIENTPEERID00001 for peer_id: it must percent-decode to exactly 20 bytese
 ```
 
 ## Related
