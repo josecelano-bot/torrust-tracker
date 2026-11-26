@@ -9,7 +9,7 @@ github-issue: 3000
 spec-path: docs/issues/open/3000-2993-si-b-client-error-text-policy/ISSUE.md
 branch: "3000-si-b-client-error-text-policy"
 related-pr: null
-last-updated-utc: "2026-11-26 15:57"
+last-updated-utc: "2026-11-26 17:41"
 semantic-links:
   skill-links:
     - create-issue
@@ -108,6 +108,20 @@ The driver text in client replies and the wrong `InvalidQuery` label are bugs ag
 - **Health-check API**: a test with the existing health-check test server where a probe fails (an unreachable service) and one where the probe job panics, and a malformed UDP response (the existing `it_should_return_error_when_the_registered_udp_service_answers_the_check_with_junk` case of `tests/server/contract.rs:514`), asserting that the per-service text follows the ADR, holds no `reqwest`, UDP client (`Display` or `Debug`) or join-error text, and keeps the 200 status; and that the shutting-down reply keeps its 503 status.
 - A helper that forbids known driver markers (`sqlx`, `error returned from database`, `constraint failed`, `Access denied`) in client text, used by the protocol tests.
 
+### Test plan by area (T3)
+
+The approved texts are the tables of the accepted ADR (`docs/adrs/20261125175726_*`, "Current and
+proposed texts"); they are not copied here, so there is one list. Each area below starts with its
+smallest red test, then the change, then green, then a recorded test-design review.
+
+| Area (commit point) | First red tests | Real-boundary tests |
+| --- | --- | --- |
+| T4 database errors and the event | `from_statement`/`From<(SqlxError, Driver)>` label for a server-raised error is not `InvalidQuery`; `RedactedMakeSpan` declares `request_id` and `span.record` shows it in a captured log | a tracker with a dropped `torrents` table logs one `ERROR` event with the driver text and the request id |
+| T5 HTTP tracker | `error_mapping` unit tests per row of the ADR table; query-parse prefix `Invalid announce request:`; an internal error never holds the marker string of its source; echo limit (64 characters, `escape_debug`) | announce and scrape reply of a tracker with a failing persisted-download read holds no driver marker and the request id of the reply is the one in the log |
+| T6 UDP tracker | `Error` to message conversion per row; cookie errors give one text; parse error gives `Invalid request: <msg>`; the event payload keeps its detail | a UDP announce with a wrong connection id and a 3-byte packet; a database failure reply holds no driver marker and the request id matches the log |
+| T7 REST API | response functions per row (token texts, duplicate key, database failures with the request id, JSON and query rejections) | duplicate key reply (still 500) holds no driver text and the log holds the reason; bad token, bad JSON, bad query replies |
+| T7b health-check API | probe result texts per row; no `reqwest`, UDP client or join-error text | unreachable HTTP service, UDP service answering junk, panicking job (existing contract cases), shutting-down 503 unchanged |
+
 ## Implementation Plan
 
 Session (maintainer, 2026-11-23): this issue starts after SI-A (#2999) is merged; one implementation session, Claude Fable 5.2 at high effort.
@@ -118,9 +132,9 @@ Status values: `TODO`, `IN_PROGRESS`, `BLOCKED`, `DONE`.
 
 | ID | Status | Task | Notes / Expected Output |
 | --- | --- | --- | --- |
-| T1 | IN_PROGRESS | Draft the ADR | The decisions listed in the scope, with the options and the reasons; a table of every current client text and its proposed text. Its own pull request. |
-| T2 | TODO | Maintainer accepts the ADR | No code before this. Update this specification with the approved texts. |
-| T3 | TODO | Baseline reproduction and test plan | Evidence recorded; the list of tests per behavior area (T4 to T7) written. The tests are written red-then-green inside each area, with a recorded test-design review after each passing increment. |
+| T1 | DONE | Draft the ADR | The decisions listed in the scope, with the options and the reasons; a table of every current client text and its proposed text. Its own pull request. |
+| T2 | DONE | Maintainer accepts the ADR | No code before this. Update this specification with the approved texts. |
+| T3 | DONE | Baseline reproduction and test plan | Evidence recorded; the list of tests per behavior area (T4 to T7) written. The tests are written red-then-green inside each area, with a recorded test-design review after each passing increment. |
 | T4 | TODO | Database errors and the server-side event | Non-secret driver text stays in the source and the log (SI-A has already removed driver messages that hold a secret); the `tracing` event exists; the `InvalidQuery` label is right. |
 | T5 | TODO | HTTP tracker text | As the ADR decides. |
 | T6 | TODO | UDP tracker text and the error event | As the ADR decides. |
@@ -150,7 +164,7 @@ Status values: `TODO`, `IN_PROGRESS`, `BLOCKED`, `DONE`.
 - [x] Spec reviewed and approved by user/maintainer
 - [x] GitHub issue created and issue number added to this spec
 - [x] Spec-only PR merged into `develop` before implementation (#2994; refreshed by #3014, which must merge before implementation too)
-- [ ] ADR accepted
+- [x] ADR accepted (pull request 3063 merged 2026-11-26)
 - [ ] Implementation completed
 - [ ] Automatic verification completed (`linter all`, relevant tests, and any pre-push checks)
 - [ ] Manual verification scenarios executed and recorded in issue-local `manual-verification-evidence.md`
@@ -170,6 +184,7 @@ Status values: `TODO`, `IN_PROGRESS`, `BLOCKED`, `DONE`.
 - 2026-11-26 14:03 UTC - Claude Code (Claude Sonnet 5.5), SI-B session - Review round 1 of PR 3063 (da2ce7): recorded that a duplicate REST key keeps its 500 in v1 with a new text, because a v1 status change is breaking and belongs to API v2 (EPIC #144); a duplicate key is a `409` in v2. Fixed six smaller findings in the ADR and its index row.
 - 2026-11-26 14:21 UTC - Claude Code (Claude Sonnet 5.5), SI-B session - Maintainer decision (josecelano, in the SI-B session chat of 2026-11-26): a duplicate REST key keeps its `500` in v1 because a v1 status change is breaking and the correct statuses are the scope of EPIC #144; the maintainer's words were a question, "is that not a breaking change and precisely the scope of EPIC 144?", which I took as the decision and recorded in rule 10 of the ADR. Rebased the branch onto `develop` to resolve the conflict in `docs/adrs/index.md`.
 - 2026-11-26 15:57 UTC - Claude Code (Claude Sonnet 5.5), SI-B session - Maintainer decision (josecelano, in the SI-B session chat of 2026-11-26) on CodeRabbit's `public_url` finding of PR 3063: no issue and no ADR change. A secret in an operator-supplied value that a reply or report copies cannot be detected in general (only userinfo is certain; query parameters and path segments are not), and no inference-based test is wanted; the check belongs to the two review passes (self-review in the implementation workflow, then the pull request review). The self-review of each SI-B change asks, for every field a reply or report carries, where its value comes from and whether an operator or a client can put a secret in it. Known-kind leaks are made structurally hard instead (redacting types, as SI-A did, and a canary test over `SECRET_OPTIONS` if a later issue wants one).
+- 2026-11-26 17:41 UTC - Claude Code (Claude Sonnet 5.5), SI-B session - Pull request 3063 merged at 17:30 UTC, so T1 and T2 are done. T3: baseline reproduction run on a debug build of `develop` (script and output in `evidence/`, summary in `manual-verification-evidence.md` section V0) and the test plan by area above.
 
 ## Acceptance Criteria
 

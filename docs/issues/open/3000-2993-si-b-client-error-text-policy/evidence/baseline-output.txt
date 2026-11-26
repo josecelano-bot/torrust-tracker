@@ -1,0 +1,54 @@
+# cspell:ignore whitelistede hashe bytese torrentse serv
+### M1, M5 private tracker, sqlite: REST
+--- M1 REST duplicate key
+{"key":"TestPeerKey000000000000000000002","valid_until":1795714553,"expiry_time":"2026-11-26 17:35:53 UTC"} [200]
+Unhandled rejection: Err { reason: "failed to add key: The Sqlite3 database already holds this authentication key" } [500]
+--- M5 REST no token
+Unhandled rejection: Err { reason: "unauthorized" } [500]
+--- M5 REST wrong token
+Unhandled rejection: Err { reason: "token not valid" } [500]
+--- M5 REST malformed Authorization header
+Unhandled rejection: Err { reason: "unknown token provided" } [500]
+--- M5 REST malformed JSON
+Failed to parse the request body as JSON: key must be a string at line 1 column 2 [400]
+--- M5 REST JSON of the wrong type
+Failed to deserialize the JSON body into the target type: key: invalid type: integer `1`, expected a string at line 1 column 8 [422]
+--- M5 REST no content type
+Expected request with `Content-Type: application/json` [415]
+--- M5 REST bad query parameter
+Failed to deserialize query string: offset: invalid digit found in string [400]
+--- M5 REST key duration overflow
+Invalid URL: invalid auth key duration: "18446744073709551615" [400]
+--- HTTP announce, no key
+d14:failure reason102:Tracker authentication error: Missing authentication key: this tracker is private, use /announce/<key>e
+--- log: lines for the 500 replies (status and request id, no reason today)
+2026-11-26T17:34:13.900116Z ERROR request{method=POST uri=/api/v1/keys version=HTTP/1.1}: API: response latency_ms=0 status_code=500 Internal Server Error server_socket_addr=127.0.0.1:41212 service_binding=http://127.0.0.1:41212/ request_id=1977e2ae-619a-4b8d-
+2026-11-26T17:34:13.903860Z ERROR request{method=GET uri=/api/v1/stats version=HTTP/1.1}: API: response latency_ms=0 status_code=500 Internal Server Error server_socket_addr=127.0.0.1:41212 service_binding=http://127.0.0.1:41212/ request_id=62faa124-7b82-48f4-
+
+### M2, M3 public listed tracker: HTTP and UDP
+--- M2 HTTP announce, not whitelisted
+d14:failure reason98:Tracker whitelist error: The torrent: 0000000000000000000000000000000000000000, is not whitelistede
+--- HTTP announce, missing param
+d14:failure reason84:Bad request. Cannot parse query params for announce request: missing param info_hashe
+--- HTTP announce, bad info_hash
+d14:failure reason142:Bad request. Cannot parse query params for announce request: invalid param value abc for info_hash: it must percent-decode to exactly 20 bytese
+--- UDP announce, not whitelisted
+tracker announce error: Tracker core whitelist error: The torrent: 0000000000000000000000000000000000000000, is not whitelisted
+--- UDP announce, wrong connection id
+tracker announce error: Connection cookie error: cookie value is expired: -8115587065478030000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000, expected > 1795714334.9737349
+--- UDP 3-byte packet
+error parsing request: SendableRequestParseError { message: "Couldn't parse action", opt_connection_id: None, opt_transaction_id: None }
+--- M6 health check, all services up
+{"status":"Ok","message":"","details":[{"service_binding":"udp://127.0.0.1:46969","binding":"127.0.0.1:46969","service_type":"udp_tracker","public_url":null,"info":"checking the udp tracker health check at: 127.0.0.1:46969","result":{"Ok":"Connected"}},{"service_binding":"http://127.0.0.1:41212/","b
+
+### M4 database failure: the torrents table of a running tracker is dropped
+--- M4 HTTP announce, info-hash not in memory
+d14:failure reason136:Tracker announce error: Database error: The Sqlite3 query was malformed: error returned from database: (code: 1) no such table: torrentse
+--- M4 HTTP scrape
+d14:failure reason134:Tracker scrape error: Database error: The Sqlite3 query was malformed: error returned from database: (code: 1) no such table: torrentse
+--- M4 UDP announce
+--- UDP announce, not whitelisted
+tracker announce error: Tracker core announce error: Database error: The Sqlite3 query was malformed: error returned from database: (code: 1) no such table: torrents
+--- log: ERROR lines
+2026-11-26T17:34:18.028924Z ERROR process_request:handle_packet{server_service_binding=ServiceBinding { protocol: UDP, bind_address: 127.0.0.1:46969 } connection_id_validation=Strict request_id="d71ddbe3-b8b3-405a-a950-a2b660fe7ae1"}:handle_error{req_kind=Some(Announce { announce_request: AnnounceRe
+2026-11-26T17:34:18.029199Z ERROR process_request:handle_packet{server_service_binding=ServiceBinding { protocol: UDP, bind_address: 127.0.0.1:46969 } connection_id_validation=Strict request_id="3683e614-d28a-4f57-9e9a-b7827b61cc16"}:handle_error{req_kind=None client_socket_addr=127.0.0.1:46350 serv
