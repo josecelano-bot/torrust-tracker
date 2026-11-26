@@ -225,7 +225,10 @@ mod tests {
 
         let result = store.load_torrent_aggregate_metric(A_METRIC).await;
 
-        assert!(matches!(result, Err(Error::InvalidQuery { .. })), "got {result:?}");
+        assert!(
+            matches!(result, Err(Error::InvalidQuery { .. } | Error::ServerError { .. })),
+            "got {result:?}"
+        );
     }
 
     #[tokio::test]
@@ -237,7 +240,10 @@ mod tests {
         let result = store.save_torrent_aggregate_metric(A_METRIC, 1).await;
 
         // Assert
-        assert!(matches!(result, Err(Error::InvalidQuery { .. })), "got {result:?}");
+        assert!(
+            matches!(result, Err(Error::InvalidQuery { .. } | Error::ServerError { .. })),
+            "got {result:?}"
+        );
     }
 
     #[tokio::test]

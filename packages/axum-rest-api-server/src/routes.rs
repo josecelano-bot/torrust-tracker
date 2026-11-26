@@ -16,6 +16,7 @@ use axum::{BoxError, Router, middleware};
 use hyper::{Request, StatusCode};
 use torrust_net_primitives::service_binding::ServiceBinding;
 use torrust_server_lib::logging::Latency;
+use torrust_tracker_axum_server::request_id::scope_from_header;
 use torrust_tracker_axum_server::request_log::{RedactedMakeSpan, redact_uri};
 use torrust_tracker_configuration::v3_0_0::tracker_api::AccessTokens;
 use torrust_tracker_rest_api_runtime_adapter::v1::container::TrackerHttpApiCoreContainer;
@@ -70,6 +71,7 @@ fn with_layers(
     routes
         .layer(middleware::from_fn_with_state(state, v1::middlewares::auth::auth))
         .route(&format!("{API_URL_PREFIX}/health_check"), get(health_check_handler))
+        .layer(axum::middleware::from_fn(scope_from_header))
         .layer(CompressionLayer::new())
         .layer(SetRequestIdLayer::x_request_id(MakeRequestUuid))
         .layer(PropagateHeaderLayer::new(HeaderName::from_static("x-request-id")))

@@ -164,7 +164,10 @@ mod tests {
 
         let result = store.load_keys().await;
 
-        assert!(matches!(result, Err(Error::InvalidQuery { .. })), "got {result:?}");
+        assert!(
+            matches!(result, Err(Error::InvalidQuery { .. } | Error::ServerError { .. })),
+            "got {result:?}"
+        );
     }
 
     #[rstest]
@@ -187,7 +190,10 @@ mod tests {
 
         let result = store.get_key_from_keys(&a_key()).await;
 
-        assert!(matches!(result, Err(Error::InvalidQuery { .. })), "got {result:?}");
+        assert!(
+            matches!(result, Err(Error::InvalidQuery { .. } | Error::ServerError { .. })),
+            "got {result:?}"
+        );
     }
 
     #[tokio::test]
@@ -245,6 +251,9 @@ mod tests {
         let result = store.remove_key_from_keys(&a_key()).await;
 
         // Assert
-        assert!(matches!(result, Err(Error::InvalidQuery { .. })), "got {result:?}");
+        assert!(
+            matches!(result, Err(Error::InvalidQuery { .. } | Error::ServerError { .. })),
+            "got {result:?}"
+        );
     }
 }

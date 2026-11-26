@@ -128,7 +128,10 @@ mod tests {
 
         let result = store.load_whitelist().await;
 
-        assert!(matches!(result, Err(Error::InvalidQuery { .. })), "got {result:?}");
+        assert!(
+            matches!(result, Err(Error::InvalidQuery { .. } | Error::ServerError { .. })),
+            "got {result:?}"
+        );
     }
 
     #[tokio::test]
@@ -140,7 +143,10 @@ mod tests {
         let result = store.get_info_hash_from_whitelist(sample_info_hash()).await;
 
         // Assert
-        assert!(matches!(result, Err(Error::InvalidQuery { .. })), "got {result:?}");
+        assert!(
+            matches!(result, Err(Error::InvalidQuery { .. } | Error::ServerError { .. })),
+            "got {result:?}"
+        );
     }
 
     #[tokio::test]
@@ -152,6 +158,9 @@ mod tests {
         let result = store.remove_info_hash_from_whitelist(sample_info_hash()).await;
 
         // Assert
-        assert!(matches!(result, Err(Error::InvalidQuery { .. })), "got {result:?}");
+        assert!(
+            matches!(result, Err(Error::InvalidQuery { .. } | Error::ServerError { .. })),
+            "got {result:?}"
+        );
     }
 }

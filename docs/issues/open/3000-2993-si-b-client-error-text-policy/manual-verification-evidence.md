@@ -67,3 +67,36 @@ texts that the ADR changes:
 | M1 server log of the 500 | `ERROR ... status_code=500 ... request_id=<id>`: no reason |
 
 The wrong `InvalidQuery` label shows in the M4 texts: a missing table is not a malformed query.
+
+## Test Increments
+
+Each increment records the red and green runs of its first tests and the test-design review
+(prose-first Arrange-Act-Assert comparison) that the specification requires before the next area.
+Commands ran with the stable toolchain (`cargo +stable test -q`).
+
+### T4 Database label, request id in the request span, request id scope
+
+- **Red 1:**
+  `cargo +stable test -q -p torrust-tracker-core --lib databases::error` failed with
+  `left: "The MySQL query was malformed: error returned from database: Duplicate entry ..."`,
+  `right: "The MySQL database server returned an error: Duplicate entry ..."` for
+  `it_should_say_that_the_database_server_returned_an_error_when_the_server_rejects_a_statement`.
+  Green after adding the `ServerError` variant (23 passed). The older tests that read an error
+  raised by the server as `InvalidQuery` now accept `ServerError` for the missing-table cases; the
+  decode cases stay `InvalidQuery`.
+- **Red 2:**
+  `cargo +stable test -q -p torrust-tracker-axum-server --lib request_log` failed for
+  `it_should_let_an_event_inside_the_request_span_carry_the_request_id_that_is_recorded_later`
+  (the logged span was `request{method=GET uri=/health_check version=HTTP/1.1}` with no id).
+  Green after declaring `request_id = tracing::field::Empty` in `RedactedMakeSpan` (39 passed).
+- **Red 3:**
+  `request_id::tests::it_should_make_the_id_of_the_request_header_available_to_the_handler` failed
+  (`left: "unknown"`, `right: "an-id-from-the-header"`) while the middleware did not scope the id;
+  green once it did (5 passed).
+- **Test-design review.** Test 1 changes one thing, the sqlx error the conversion receives (a
+  server-raised error instead of a connection error), and asserts the whole message, whose
+  expected text is written from the ADR and not computed by the code. Test 2 holds the span
+  construction (the production Act) and one recorded value; the fixture owns only the request
+  builder. Test 3 uses a real router with the production middleware, so the Act is the request
+  and the expected text is the header the test sent. The helper `serve` owns the incidental body
+  reading.

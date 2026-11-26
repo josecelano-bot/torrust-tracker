@@ -1206,7 +1206,7 @@ mod tests {
             .expect("initial persistence load error source should retain the database error");
         assert!(matches!(
             source,
-            torrust_tracker_core::databases::error::Error::InvalidQuery { .. }
+            torrust_tracker_core::databases::error::Error::ServerError { .. }
         ));
         assert!(
             std::error::Error::source(source).is_some(),

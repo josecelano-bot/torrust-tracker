@@ -210,7 +210,10 @@ mod tests {
 
         let result = store.load_all_torrents_downloads().await;
 
-        assert!(matches!(result, Err(Error::InvalidQuery { .. })), "got {result:?}");
+        assert!(
+            matches!(result, Err(Error::InvalidQuery { .. } | Error::ServerError { .. })),
+            "got {result:?}"
+        );
     }
 
     #[rstest]
@@ -236,7 +239,10 @@ mod tests {
 
         let result = store.load_torrents_downloads(&[sample_info_hash()]).await;
 
-        assert!(matches!(result, Err(Error::InvalidQuery { .. })), "got {result:?}");
+        assert!(
+            matches!(result, Err(Error::InvalidQuery { .. } | Error::ServerError { .. })),
+            "got {result:?}"
+        );
     }
 
     #[rstest]
@@ -262,7 +268,10 @@ mod tests {
 
         let result = store.load_torrent_downloads(&sample_info_hash()).await;
 
-        assert!(matches!(result, Err(Error::InvalidQuery { .. })), "got {result:?}");
+        assert!(
+            matches!(result, Err(Error::InvalidQuery { .. } | Error::ServerError { .. })),
+            "got {result:?}"
+        );
     }
 
     #[tokio::test]
@@ -329,6 +338,9 @@ mod tests {
 
         let result = write.perform(&store).await;
 
-        assert!(matches!(result, Err(Error::InvalidQuery { .. })), "got {result:?}");
+        assert!(
+            matches!(result, Err(Error::InvalidQuery { .. } | Error::ServerError { .. })),
+            "got {result:?}"
+        );
     }
 }

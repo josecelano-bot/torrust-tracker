@@ -11,6 +11,7 @@ use axum_client_ip::ClientIpSource;
 use hyper::{Request, StatusCode};
 use torrust_net_primitives::service_binding::ServiceBinding;
 use torrust_server_lib::logging::Latency;
+use torrust_tracker_axum_server::request_id::scope_from_header;
 use torrust_tracker_axum_server::request_log::{RedactedMakeSpan, redact_uri};
 use torrust_tracker_http_core::container::HttpTrackerCoreContainer;
 use tower::ServiceBuilder;
@@ -76,6 +77,7 @@ fn with_request_layers(router: Router, server_service_binding: &ServiceBinding) 
     router
         // Add extension to get the client IP from the connection info
         .layer(ClientIpSource::ConnectInfo.into_extension())
+        .layer(axum::middleware::from_fn(scope_from_header))
         .layer(CompressionLayer::new())
         .layer(SetRequestIdLayer::x_request_id(MakeRequestUuid))
         .layer(PropagateHeaderLayer::new(HeaderName::from_static("x-request-id")))

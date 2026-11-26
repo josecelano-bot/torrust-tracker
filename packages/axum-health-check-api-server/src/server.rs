@@ -18,6 +18,7 @@ use torrust_net_primitives::service_binding::{Protocol, ServiceBinding};
 use torrust_server_lib::logging::{Latency, STARTED_ON};
 use torrust_server_lib::registar::{Registar, RegistrationError, ServiceRegistration};
 use torrust_tracker_axum_server::custom_axum_server;
+use torrust_tracker_axum_server::request_id::scope_from_header;
 use torrust_tracker_axum_server::request_log::{RedactedMakeSpan, redact_uri};
 use torrust_tracker_axum_server::signals::{GracefulShutdownOutcome, graceful_shutdown_on_cancellation};
 use torrust_tracker_primitives::{Readiness, RuntimeServiceMetadata};
@@ -145,6 +146,7 @@ fn router(registar: Registar<RuntimeServiceMetadata>, readiness: Readiness) -> R
         .route("/", get(|| async { Json(json!({})) }))
         .route("/health_check", get(health_check_handler))
         .with_state(HealthCheckState { registar, readiness })
+        .layer(axum::middleware::from_fn(scope_from_header))
         .layer(CompressionLayer::new())
         .layer(SetRequestIdLayer::x_request_id(MakeRequestUuid))
         .layer(PropagateHeaderLayer::new(HeaderName::from_static("x-request-id")))

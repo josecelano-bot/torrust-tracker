@@ -49,6 +49,15 @@ pub enum Error {
     #[error("The {driver} query was malformed: {source}")]
     InvalidQuery { source: DynError, driver: Driver },
 
+    /// Indicates that the database server answered a statement with an error.
+    ///
+    /// This is the label of every error the server raised (a rejected statement, a missing
+    /// table, a refused login): what the server said, not a claim that the query was malformed.
+    /// The text is for the operator and the log; no client receives it (see
+    /// `docs/adrs/20261125175726_tell_clients_what_they_can_act_on_and_keep_failure_detail_on_the_server.md`).
+    #[error("The {driver} database server returned an error: {source}")]
+    ServerError { source: DynError, driver: Driver },
+
     /// Indicates that an authentication key to add is already stored.
     ///
     /// The message does not repeat what the database server answered: the server
@@ -125,6 +134,10 @@ impl From<(SqlxError, Driver)> for Error {
                 source: Arc::new(err),
                 driver,
             },
+            SqlxError::Database(server_error) => Self::ServerError {
+                source: Arc::from(server_error.into_error()),
+                driver,
+            },
             _ => Self::InvalidQuery {
                 source: Arc::new(err),
                 driver,
@@ -148,7 +161,7 @@ impl Error {
                 if matches!(server_error.kind(), ErrorKind::UniqueViolation) {
                     Self::KeyAlreadyExists { driver }
                 } else {
-                    Self::InvalidQuery {
+                    Self::ServerError {
                         source: Arc::new(StatementRejected {
                             kind: format!("{:?}", server_error.kind()),
                             code: server_error.code().map(Cow::into_owned),
@@ -191,6 +204,7 @@ mod tests {
         match error {
             Error::QueryReturnedNoRows { .. } => "QueryReturnedNoRows",
             Error::InvalidQuery { .. } => "InvalidQuery",
+            Error::ServerError { .. } => "ServerError",
             Error::ConnectionError { .. } => "ConnectionError",
             Error::MigrationError { .. } => "MigrationError",
             _ => "another variant",
@@ -202,6 +216,7 @@ mod tests {
         match error {
             Error::QueryReturnedNoRows { driver, .. }
             | Error::InvalidQuery { driver, .. }
+            | Error::ServerError { driver, .. }
             | Error::ConnectionError { driver, .. }
             | Error::MigrationError { driver, .. } => driver,
             other => panic!("expected a converted error, got {other:?}"),
@@ -223,6 +238,21 @@ mod tests {
         let converted: Error = (error, Driver::Sqlite3).into();
 
         assert_eq!(variant(&converted), expected);
+    }
+
+    #[test]
+    fn it_should_say_that_the_database_server_returned_an_error_when_the_server_rejects_a_statement() {
+        // Arrange: a statement the server rejects for a reason that is not a malformed query.
+        let rejected = a_server_error("a message of the server", false, Some("HY000"));
+
+        // Act
+        let converted: Error = (rejected, Driver::MySQL).into();
+
+        // Assert
+        assert_eq!(
+            converted.to_string(),
+            "The MySQL database server returned an error: Duplicate entry 'a message of the server' for key 'keys.key'"
+        );
     }
 
     #[test]

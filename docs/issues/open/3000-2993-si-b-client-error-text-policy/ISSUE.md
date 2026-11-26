@@ -135,7 +135,7 @@ Status values: `TODO`, `IN_PROGRESS`, `BLOCKED`, `DONE`.
 | T1 | DONE | Draft the ADR | The decisions listed in the scope, with the options and the reasons; a table of every current client text and its proposed text. Its own pull request. |
 | T2 | DONE | Maintainer accepts the ADR | No code before this. Update this specification with the approved texts. |
 | T3 | DONE | Baseline reproduction and test plan | Evidence recorded; the list of tests per behavior area (T4 to T7) written. The tests are written red-then-green inside each area, with a recorded test-design review after each passing increment. |
-| T4 | TODO | Database errors and the server-side event | Non-secret driver text stays in the source and the log (SI-A has already removed driver messages that hold a secret); the `tracing` event exists; the `InvalidQuery` label is right. |
+| T4 | DONE | Database errors and the server-side event | Non-secret driver text stays in the source and the log (SI-A has already removed driver messages that hold a secret); the `tracing` event exists; the `InvalidQuery` label is right. |
 | T5 | TODO | HTTP tracker text | As the ADR decides. |
 | T6 | TODO | UDP tracker text and the error event | As the ADR decides. |
 | T7 | TODO | REST API text | As the ADR decides, within v1's additive-only rule. |

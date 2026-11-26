@@ -119,7 +119,7 @@ fn percent_decoded(text: &str) -> String {
 }
 
 /// Makes the span of a request like `tower_http`'s `DefaultMakeSpan` at the `INFO` level, with
-/// the redacted URI instead of the raw one.
+/// the redacted URI instead of the raw one, and a `request_id` field the request layers fill in.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct RedactedMakeSpan;
 
@@ -131,6 +131,10 @@ impl<B> MakeSpan<B> for RedactedMakeSpan {
             method = %request.method(),
             uri = %redact_uri(request.uri()),
             version = ?request.version(),
+            // Declared empty: the layer that knows the id records it afterwards. `Span::record`
+            // ignores a field the span did not declare, so without this line no event inside the
+            // request carries the id (rule 7 of the client error text ADR).
+            request_id = tracing::field::Empty,
         )
     }
 }
@@ -268,5 +272,28 @@ mod tests {
         );
         assert!(!logs.contains(peer_key), "the span holds the test peer key");
         assert!(!logs.contains(admin_token), "the span holds the test token");
+    }
+
+    #[test]
+    fn it_should_let_an_event_inside_the_request_span_carry_the_request_id_that_is_recorded_later() {
+        // Arrange: the layers know the id only after the span exists, so they record it afterwards.
+        let request = Request::builder()
+            .uri("/health_check")
+            .body(())
+            .expect("the test request should be valid");
+
+        // Act
+        let ((), logs) = capture_logs_while(|| {
+            let span = RedactedMakeSpan.make_span(&request);
+            let _entered = span.enter();
+            span.record("request_id", "a-test-request-id");
+            tracing::error!("an event inside the request span");
+        });
+
+        // Assert
+        assert!(
+            logs.contains("request_id=\"a-test-request-id\"") || logs.contains("request_id=a-test-request-id"),
+            "an event in the request span should carry the request id, got: {logs}"
+        );
     }
 }
