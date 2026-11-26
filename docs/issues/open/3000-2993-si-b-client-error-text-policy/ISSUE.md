@@ -9,7 +9,7 @@ github-issue: 3000
 spec-path: docs/issues/open/3000-2993-si-b-client-error-text-policy/ISSUE.md
 branch: "3000-si-b-client-error-text-policy"
 related-pr: null
-last-updated-utc: "2026-11-26 17:41"
+last-updated-utc: "2026-11-26 18:13"
 semantic-links:
   skill-links:
     - create-issue
@@ -141,7 +141,7 @@ Status values: `TODO`, `IN_PROGRESS`, `BLOCKED`, `DONE`.
 | T7 | DONE | REST API text | As the ADR decides, within v1's additive-only rule. |
 | T7b | DONE | Health-check API text | As the ADR decides; the per-service failure text of the HTTP and UDP checks and the report message, with the statuses unchanged (200 for a failed probe, 503 while shutting down). |
 | T8 | DONE | Skill and documentation | `handle-errors-in-code`; any documented example reply. |
-| T8b | TODO | Maintainer checkpoint | Stop for maintainer review after the last test increment, before final verification, the final commit and the pull request. |
+| T8b | IN_PROGRESS | Maintainer checkpoint | Stop for maintainer review after the last test increment, before final verification, the final commit and the pull request. |
 | T9 | TODO | Final recheck | The baseline reproduction repeated after the last production change. |
 
 ## Commit Points
@@ -185,6 +185,7 @@ Status values: `TODO`, `IN_PROGRESS`, `BLOCKED`, `DONE`.
 - 2026-11-26 14:21 UTC - Claude Code (Claude Sonnet 5.5), SI-B session - Maintainer decision (josecelano, in the SI-B session chat of 2026-11-26): a duplicate REST key keeps its `500` in v1 because a v1 status change is breaking and the correct statuses are the scope of EPIC #144; the maintainer's words were a question, "is that not a breaking change and precisely the scope of EPIC 144?", which I took as the decision and recorded in rule 10 of the ADR. Rebased the branch onto `develop` to resolve the conflict in `docs/adrs/index.md`.
 - 2026-11-26 15:57 UTC - Claude Code (Claude Sonnet 5.5), SI-B session - Maintainer decision (josecelano, in the SI-B session chat of 2026-11-26) on CodeRabbit's `public_url` finding of PR 3063: no issue and no ADR change. A secret in an operator-supplied value that a reply or report copies cannot be detected in general (only userinfo is certain; query parameters and path segments are not), and no inference-based test is wanted; the check belongs to the two review passes (self-review in the implementation workflow, then the pull request review). The self-review of each SI-B change asks, for every field a reply or report carries, where its value comes from and whether an operator or a client can put a secret in it. Known-kind leaks are made structurally hard instead (redacting types, as SI-A did, and a canary test over `SECRET_OPTIONS` if a later issue wants one).
 - 2026-11-26 17:41 UTC - Claude Code (Claude Sonnet 5.5), SI-B session - Pull request 3063 merged at 17:30 UTC, so T1 and T2 are done. T3: baseline reproduction run on a debug build of `develop` (script and output in `evidence/`, summary in `manual-verification-evidence.md` section V0) and the test plan by area above.
+- 2026-11-26 18:13 UTC - Claude Code (Claude Sonnet 5.5), SI-B session - T4 to T8 done and committed, one commit per area, each with its red and green runs and test-design review in `manual-verification-evidence.md`; the full workspace test run passes. Stopped at the maintainer checkpoint (T8b): the final recheck of the baseline reproduction (T9), the final commit and the pull request wait for review of the increments.
 
 ## Acceptance Criteria
 
