@@ -48,7 +48,7 @@ async fn an_announce_with_an_unparsable_query() {
     let failure_reason = failure_reason_for(configuration::ephemeral_public(), "announce?a=b=c").await;
 
     assert_names_no_source_path(&failure_reason);
-    assert!(failure_reason.contains("invalid param a=b=c"), "{failure_reason:?}");
+    assert!(failure_reason.contains("malformed query param a=b=c"), "{failure_reason:?}");
 }
 
 #[tokio::test]
@@ -191,7 +191,7 @@ async fn an_announce_to_a_listed_tracker_for_a_torrent_that_is_not_whitelisted()
 
     assert_names_no_source_path(&failure_reason);
     assert!(
-        failure_reason.contains("The torrent: 3b245504cf5f11bbdbe1201cea6a6bf45aee1bc0, is not whitelisted"),
+        failure_reason.contains("The torrent 3b245504cf5f11bbdbe1201cea6a6bf45aee1bc0 is not whitelisted on this tracker"),
         "{failure_reason:?}"
     );
 }

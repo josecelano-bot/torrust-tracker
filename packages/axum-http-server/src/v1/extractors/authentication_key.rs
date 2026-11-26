@@ -20,32 +20,32 @@
 //! When the key param is **missing**:
 //!
 //! ```text
-//! d14:failure reason102:Tracker authentication error: Missing authentication key: this tracker is private, use /announce/<key>e
+//! d14:failure reason72:Missing authentication key: this tracker is private, use /announce/<key>e
 //! ```
 //!
 //! When the key param has the **wrong length**, the reply states the number of characters
 //! received, never the key (the key is a secret):
 //!
 //! ```text
-//! d14:failure reason88:Tracker authentication error: Invalid authentication key: expected 32 characters, got 14e
+//! d14:failure reason58:Invalid authentication key: expected 32 characters, got 14e
 //! ```
 //!
 //! When the key param has a **character outside `0-9`, `a-z` and `A-Z`**:
 //!
 //! ```text
-//! d14:failure reason106:Tracker authentication error: Invalid authentication key: only the characters 0-9, a-z and A-Z are allowede
+//! d14:failure reason76:Invalid authentication key: only the characters 0-9, a-z and A-Z are allowede
 //! ```
 //!
 //! When the key is **not registered**:
 //!
 //! ```text
-//! d14:failure reason63:Tracker authentication error: Authentication key not registerede
+//! d14:failure reason33:Authentication key not registerede
 //! ```
 //!
 //! When the key is registered but it's **expired**:
 //!
 //! ```text
-//! d14:failure reason56:Tracker authentication error: Authentication key expirede
+//! d14:failure reason26:Authentication key expirede
 //! ```
 //!
 //! > **NOTICE**: the returned HTTP status code is always `200` for authentication errors.
@@ -186,7 +186,7 @@ mod tests {
         assert_names_no_source_path(&actual_error_response.failure_reason);
         assert_eq!(
             actual_error_response.failure_reason,
-            "Tracker authentication error: Invalid authentication key: expected 32 characters, got 14"
+            "Invalid authentication key: expected 32 characters, got 14"
         );
     }
 
@@ -201,7 +201,7 @@ mod tests {
         // Assert
         assert_eq!(
             actual_error_response.failure_reason,
-            "Tracker authentication error: Invalid authentication key: only the characters 0-9, a-z and A-Z are allowed"
+            "Invalid authentication key: only the characters 0-9, a-z and A-Z are allowed"
         );
     }
 
@@ -224,7 +224,7 @@ mod tests {
         assert_names_no_source_path(&actual_error_response.failure_reason);
         assert_eq!(
             actual_error_response.failure_reason,
-            "Tracker authentication error: Cannot extract authentication key param from URL path: \
+            "Cannot extract authentication key param from URL path: \
              expected /announce/<key> or /scrape/<key>"
         );
     }
@@ -260,7 +260,7 @@ mod tests {
         // Assert
         assert_failure_reason_contains(
             &actual_error_response,
-            "Tracker authentication error: Invalid authentication key: expected 32 characters, got 11",
+            "Invalid authentication key: expected 32 characters, got 11",
         );
     }
 }

@@ -33,7 +33,7 @@ use torrust_tracker_test_helpers::{configuration, logging};
 use crate::common::fixtures::invalid_info_hashes;
 use crate::server::asserts::{
     assert_announce_response, assert_bad_announce_request_error_response, assert_cannot_parse_query_param_error_response,
-    assert_cannot_parse_query_params_error_response, assert_compact_announce_response, assert_is_announce_response,
+    assert_compact_announce_response, assert_invalid_request_error_response, assert_is_announce_response,
     assert_missing_query_params_for_announce_request_error_response,
 };
 
@@ -136,7 +136,7 @@ async fn should_fail_when_url_query_parameters_are_invalid() {
         .await
         .unwrap();
 
-    assert_cannot_parse_query_param_error_response(response, "invalid param a=b=c").await;
+    assert_cannot_parse_query_param_error_response(response, "malformed query param a=b=c").await;
 
     env.stop().await;
 }
@@ -222,7 +222,7 @@ async fn should_fail_when_the_info_hash_param_is_invalid() {
             .await
             .unwrap();
 
-        assert_cannot_parse_query_params_error_response(response, "").await;
+        assert_invalid_request_error_response(response).await;
     }
 
     env.stop().await;
@@ -280,7 +280,7 @@ async fn it_should_return_distinct_failure_reasons_for_non_literal_peer_ip_param
         ("999.999.999.999", "The announce ip parameter must be an IPv4 or IPv6 literal"),
         (
             "%ZZ",
-            "Bad request. Cannot parse query params for announce request: malformed percent encoding or invalid UTF-8 for ip",
+            "Invalid announce request: malformed percent encoding or invalid UTF-8 for ip",
         ),
     ] {
         let response = Client::new(env.base_url(), Duration::from_secs(5))

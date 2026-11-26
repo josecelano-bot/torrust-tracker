@@ -14,6 +14,7 @@ use torrust_peer_id::PeerId;
 use crate::percent_encoding::{
     PeerIdConversionError, percent_decode_info_hash, percent_decode_peer_id, percent_encode_byte_array,
 };
+use crate::v1::echo::echo;
 use crate::v1::query::{ParseQueryError, Query};
 use crate::v1::responses;
 
@@ -219,14 +220,17 @@ pub enum ParseAnnounceQueryError {
     #[error("missing param {param_name}")]
     MissingParam { param_name: String },
     /// The param cannot be parsed into the domain type.
-    #[error("invalid param value {param_value} for {param_name}")]
+    #[error("invalid param value {} for {param_name}", echo(param_value))]
     InvalidParam { param_name: String, param_value: String },
     /// The `info_hash` is invalid.
     ///
     /// The message does not print the source: its text comes from the
     /// `torrust-info-hash` crate, which this workspace does not control, and
     /// the message reaches the client.
-    #[error("invalid param value {param_value} for {param_name}: it must percent-decode to exactly 20 bytes")]
+    #[error(
+        "invalid param value {} for {param_name}: it must percent-decode to exactly 20 bytes",
+        echo(param_value)
+    )]
     InvalidInfoHashParam {
         param_name: String,
         param_value: String,
@@ -234,7 +238,10 @@ pub enum ParseAnnounceQueryError {
         source: torrust_info_hash::ConversionError,
     },
     /// The `peer_id` is invalid.
-    #[error("invalid param value {param_value} for {param_name}: it must percent-decode to exactly 20 bytes")]
+    #[error(
+        "invalid param value {} for {param_name}: it must percent-decode to exactly 20 bytes",
+        echo(param_value)
+    )]
     InvalidPeerIdParam {
         param_name: String,
         param_value: String,
@@ -343,7 +350,7 @@ impl FromStr for Compact {
 impl From<ParseQueryError> for responses::error::Error {
     fn from(err: ParseQueryError) -> Self {
         Self {
-            failure_reason: format!("Bad request. Cannot parse query params: {err}"),
+            failure_reason: format!("Invalid request: {err}"),
         }
     }
 }
@@ -351,7 +358,7 @@ impl From<ParseQueryError> for responses::error::Error {
 impl From<ParseAnnounceQueryError> for responses::error::Error {
     fn from(err: ParseAnnounceQueryError) -> Self {
         Self {
-            failure_reason: format!("Bad request. Cannot parse query params for announce request: {err}"),
+            failure_reason: format!("Invalid announce request: {err}"),
         }
     }
 }

@@ -8,6 +8,8 @@ use std::str::FromStr;
 use multimap::MultiMap;
 use thiserror::Error;
 
+use crate::v1::echo::echo;
+
 type ParamName = String;
 type ParamValue = String;
 
@@ -99,7 +101,7 @@ impl Query {
 pub enum ParseQueryError {
     /// Invalid URL query param. For example: `"name=value=value"`. It contains
     /// an unescaped `=` character.
-    #[error("invalid param {raw_param}")]
+    #[error("malformed query param {}", echo(raw_param))]
     InvalidParam { raw_param: String },
 }
 
@@ -267,7 +269,19 @@ mod tests {
             let message = "name=value=value".parse::<Query>().unwrap_err().to_string();
 
             assert_names_no_source_path(&message);
-            assert_eq!(message, "invalid param name=value=value");
+            assert_eq!(message, "malformed query param name=value=value");
+        }
+
+        #[test]
+        fn it_should_cut_and_escape_the_raw_param_that_a_message_repeats() {
+            // Arrange: a param with an unescaped `=` and a line break, longer than the echo limit.
+            let raw_param = format!("name=\n{}=x", "v".repeat(100));
+
+            // Act
+            let message = raw_param.parse::<Query>().unwrap_err().to_string();
+
+            // Assert
+            assert_eq!(message, format!("malformed query param name=\\n{}...", "v".repeat(58)));
         }
 
         #[test]

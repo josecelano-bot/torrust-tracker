@@ -18,6 +18,7 @@ use torrust_tracker_primitives::AnnounceData as DomainAnnounceData;
 use crate::v1::extractors::announce_request::ExtractRequest;
 use crate::v1::extractors::authentication_key::Extract as ExtractKey;
 use crate::v1::extractors::client_ip_sources::Extract as ExtractClientIpSources;
+use crate::v1::handlers::failure_response;
 
 /// It handles the `announce` request when the HTTP tracker does not require
 /// authentication (no PATH `key` parameter required).
@@ -74,8 +75,8 @@ async fn handle(
     {
         Ok(announce_data) => announce_data,
         Err(error) => {
-            let error_response = responses::error::Error::from(error);
-            return (StatusCode::OK, error_response.write()).into_response();
+            let error_response = responses::error::Error::from(error.clone());
+            return failure_response(&error, error_response);
         }
     };
     build_response(announce_request, announce_data)
@@ -474,7 +475,7 @@ mod tests {
 
             assert_failure_reason_contains(
                 &actual_error_response,
-                "Tracker authentication error: Missing authentication key: this tracker is private, use /announce/<key>",
+                "Missing authentication key: this tracker is private, use /announce/<key>",
             );
         }
 
@@ -499,10 +500,7 @@ mod tests {
             // Assert
             let actual_error_response = responses::error::Error::from(actual_error);
 
-            assert_failure_reason_contains(
-                &actual_error_response,
-                "Tracker authentication error: Authentication key not registered",
-            );
+            assert_failure_reason_contains(&actual_error_response, "Authentication key not registered");
         }
     }
 
@@ -539,7 +537,7 @@ mod tests {
             assert_failure_reason_contains(
                 &actual_error_response,
                 &format!(
-                    "Tracker whitelist error: The torrent: {}, is not whitelisted",
+                    "The torrent {} is not whitelisted on this tracker",
                     announce_request.info_hash
                 ),
             );
@@ -623,7 +621,7 @@ mod tests {
 
             assert_failure_reason_contains(
                 &actual_error_response,
-                "Error resolving peer IP: cannot get the client IP: the server did not provide the socket address of the connection",
+                "Internal tracker error: the request could not be completed, try again later",
             );
         }
     }

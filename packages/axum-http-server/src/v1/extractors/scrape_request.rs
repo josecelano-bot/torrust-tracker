@@ -19,13 +19,13 @@
 //! Missing query params for scrape request: <http://0.0.0.0:7070/scrape>
 //!
 //! ```text
-//! d14:failure reason127:Bad request. Cannot parse query params for scrape request: missing query params for scrape request: the URL has no query stringe
+//! d14:failure reason92:Invalid scrape request: missing query params for scrape request: the URL has no query stringe
 //! ```
 //!
 //! Invalid query params for scrape request: <http://0.0.0.0:7070/scrape?info_hash=invalid>
 //!
 //! ```text
-//! d14:failure reason144:Bad request. Cannot parse query params for scrape request: invalid param value invalid for info_hash: it must percent-decode to exactly 20 bytese
+//! d14:failure reason109:Invalid scrape request: invalid param value invalid for info_hash: it must percent-decode to exactly 20 bytese
 //! ```
 // cspell:ignore bytese stringe
 use std::future::Future;
@@ -146,10 +146,7 @@ mod tests {
     fn it_should_reject_a_request_without_query_params() {
         let response = extract_scrape_from(None).unwrap_err();
 
-        assert_error_response(
-            &response,
-            "Bad request. Cannot parse query params for scrape request: missing query params for scrape request",
-        );
+        assert_error_response(&response, "Invalid scrape request: missing query params for scrape request");
     }
 
     #[test]
@@ -159,7 +156,7 @@ mod tests {
         assert_names_no_source_path(&response.failure_reason);
         assert_eq!(
             response.failure_reason,
-            "Bad request. Cannot parse query params for scrape request: \
+            "Invalid scrape request: \
              missing query params for scrape request: the URL has no query string"
         );
     }
@@ -169,13 +166,13 @@ mod tests {
         let invalid_query = "param1=value1=value2";
         let response = extract_scrape_from(Some(invalid_query)).unwrap_err();
 
-        assert_error_response(&response, "Bad request. Cannot parse query params");
+        assert_error_response(&response, "Invalid request");
     }
 
     #[test]
     fn it_should_reject_a_request_with_a_query_that_cannot_be_parsed_into_a_scrape_request() {
         let response = extract_scrape_from(Some("param1=value1")).unwrap_err();
 
-        assert_error_response(&response, "Bad request. Cannot parse query params for scrape request");
+        assert_error_response(&response, "Invalid scrape request");
     }
 }

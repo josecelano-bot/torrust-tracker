@@ -5,6 +5,7 @@ use thiserror::Error;
 use torrust_info_hash::InfoHash;
 
 use crate::percent_encoding::percent_decode_info_hash;
+use crate::v1::echo::echo;
 use crate::v1::query::Query;
 use crate::v1::responses;
 
@@ -46,7 +47,10 @@ pub enum ParseScrapeQueryError {
     /// The message does not print the source: its text comes from the
     /// `torrust-info-hash` crate, which this workspace does not control, and
     /// the message reaches the client.
-    #[error("invalid param value {param_value} for {param_name}: it must percent-decode to exactly 20 bytes")]
+    #[error(
+        "invalid param value {} for {param_name}: it must percent-decode to exactly 20 bytes",
+        echo(param_value)
+    )]
     InvalidInfoHashParam {
         param_name: String,
         param_value: String,
@@ -58,7 +62,7 @@ pub enum ParseScrapeQueryError {
 impl From<ParseScrapeQueryError> for responses::error::Error {
     fn from(err: ParseScrapeQueryError) -> Self {
         Self {
-            failure_reason: format!("Bad request. Cannot parse query params for scrape request: {err}"),
+            failure_reason: format!("Invalid scrape request: {err}"),
         }
     }
 }

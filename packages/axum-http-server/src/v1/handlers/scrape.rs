@@ -18,6 +18,7 @@ use torrust_tracker_primitives::ScrapeData as DomainScrapeData;
 use crate::v1::extractors::authentication_key::Extract as ExtractKey;
 use crate::v1::extractors::client_ip_sources::Extract as ExtractClientIpSources;
 use crate::v1::extractors::scrape_request::ExtractRequest;
+use crate::v1::handlers::failure_response;
 
 /// It handles the `scrape` request when the HTTP tracker is configured
 /// to run in `public` mode.
@@ -72,8 +73,8 @@ async fn handle(
     {
         Ok(scrape_data) => scrape_data,
         Err(error) => {
-            let error_response = responses::error::Error::from(error);
-            return (StatusCode::OK, error_response.write()).into_response();
+            let error_response = responses::error::Error::from(error.clone());
+            return failure_response(&error, error_response);
         }
     };
 
@@ -525,7 +526,7 @@ mod tests {
 
             assert_failure_reason_contains(
                 &actual_error_response,
-                "Error resolving peer IP: cannot get the client IP: the server did not provide the socket address of the connection",
+                "Internal tracker error: the request could not be completed, try again later",
             );
         }
     }

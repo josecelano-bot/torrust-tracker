@@ -103,7 +103,28 @@ pub async fn assert_missing_query_params_for_announce_request_error_response(res
 }
 
 pub async fn assert_bad_announce_request_error_response(response: Response, failure: &str) {
-    assert_cannot_parse_query_params_error_response(response, &format!(" for announce request: {failure}")).await;
+    assert_failure_reason_contains(response, &format!("Invalid announce request: {failure}")).await;
+}
+
+/// Checks that the request was refused as unparsable: the `failure reason` starts with the prefix of an
+/// announce query, a scrape query or a malformed query string.
+pub async fn assert_invalid_request_error_response(response: Response) {
+    assert_eq!(response.status(), 200);
+
+    let failure_reason = failure_reason_of(response).await;
+    assert!(
+        ["Invalid announce request: ", "Invalid scrape request: ", "Invalid request: "]
+            .iter()
+            .any(|prefix| failure_reason.starts_with(prefix)),
+        "expected an unparsable-request refusal, got: {failure_reason}"
+    );
+}
+
+/// Checks the status and that the `failure reason` holds `expected_failure_reason`.
+pub async fn assert_failure_reason_contains(response: Response, expected_failure_reason: &str) {
+    assert_eq!(response.status(), 200);
+
+    assert_bencoded_error(&response.text().await.unwrap(), expected_failure_reason, Location::caller());
 }
 
 // Specific errors for scrape request
@@ -145,7 +166,7 @@ pub async fn assert_cannot_parse_query_params_error_response(response: Response,
 
     assert_bencoded_error(
         &response.text().await.unwrap(),
-        &format!("Bad request. Cannot parse query params{failure}"),
+        &format!("Invalid request{failure}"),
         Location::caller(),
     );
 }
@@ -153,10 +174,11 @@ pub async fn assert_cannot_parse_query_params_error_response(response: Response,
 pub async fn assert_authentication_error_response(response: Response) {
     assert_eq!(response.status(), 200);
 
-    assert_bencoded_error(
-        &response.text().await.unwrap(),
-        "Tracker authentication error",
-        Location::caller(),
+    // Every refusal of the key check names the authentication key: missing, invalid, not registered or expired.
+    let body = response.text().await.unwrap();
+    assert!(
+        body.to_lowercase().contains("authentication key"),
+        "expected an authentication key refusal, got: {body}"
     );
 }
 

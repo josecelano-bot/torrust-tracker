@@ -24,8 +24,7 @@ use torrust_tracker_test_helpers::{configuration, logging};
 
 use crate::common::fixtures::invalid_info_hashes;
 use crate::server::asserts::{
-    assert_cannot_parse_query_params_error_response, assert_missing_query_params_for_scrape_request_error_response,
-    assert_scrape_response,
+    assert_invalid_request_error_response, assert_missing_query_params_for_scrape_request_error_response, assert_scrape_response,
 };
 
 #[tokio::test]
@@ -66,7 +65,7 @@ async fn should_fail_when_the_info_hash_param_is_invalid() {
             .await
             .unwrap();
 
-        assert_cannot_parse_query_params_error_response(response, "").await;
+        assert_invalid_request_error_response(response).await;
     }
 
     env.stop().await;

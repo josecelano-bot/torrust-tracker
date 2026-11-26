@@ -6,7 +6,7 @@ last-updated-utc: "2026-11-26 17:40"
 
 # Manual Verification Evidence
 
-<!-- cspell:ignore torrents -->
+<!-- cspell:ignore torrents latere -->
 
 ## Purpose
 
@@ -100,3 +100,30 @@ Commands ran with the stable toolchain (`cargo +stable test -q`).
   builder. Test 3 uses a real router with the production middleware, so the Act is the request
   and the expected text is the header the test sent. The helper `serve` owns the incidental body
   reading.
+
+### T5 HTTP tracker text
+
+- **Red:** `cargo +stable test -q -p torrust-tracker-axum-http-server --test database_failure`
+  failed with `the client should read the operation and its request id, got:
+  d14:failure reason76:Internal tracker error: the announce could not be completed, try again latere`
+  (the sentence was already fixed by the new mapping, the request id and the `ERROR` event were
+  missing). Green after `failure_response` in `handlers/mod.rs` added the id and logged the event:
+  announce and scrape both pass (2 passed).
+- **Red by mutation for the mapping:** with the announce database arm of `error_mapping` changed to
+  print the driver text, `it_should_treat_a_database_failure_as_an_internal_failure_that_names_the_operation_only`
+  failed (`case_1_announce`); the file was restored and the unit tests pass (200 in `http-core`).
+  The `echo` helper and the `Error::internal`, `is_internal` and `with_request_id` helpers were
+  written with their tests in one step (their symbols did not exist before, so the tests did not
+  compile without them).
+- **Existing tests that pinned the old texts** turned red with the change and were updated to the
+  ADR texts: the `Bad request. Cannot parse query params...` prefixes became `Invalid announce
+  request`, `Invalid scrape request` and `Invalid request`, the `Tracker ... error:` prefixes went,
+  the whitelist sentence is `The torrent <ih> is not whitelisted on this tracker`, and the missing
+  client address is an internal failure. `invalid param a=b=c` became `malformed query param a=b=c`.
+- **Test-design review.** The real-boundary test changes one thing in the initial state, a database
+  whose table was dropped after start, and states the whole expected sentence from the ADR with the
+  request id read from the reply's own header, so the Act is the production request and the
+  expectation is independent of the code. The fixture helper owns the mechanics (starting the
+  tracker, dropping the table, reading the header). The mapping unit tests build the cause with a
+  unique marker string in its source and assert that the marker is absent from the reply, which is
+  the property the rule states.

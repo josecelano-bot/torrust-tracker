@@ -24,7 +24,42 @@ pub struct Error {
     pub failure_reason: String,
 }
 
+/// How the `failure reason` of a failure inside the tracker begins.
+///
+/// A failure inside the tracker (a database that is down, a state the code did not expect) sends
+/// one fixed sentence that names the operation and nothing from the error, and the request id the
+/// operator finds the detail by (rule 2 of the client error text ADR,
+/// `docs/adrs/20261125175726_tell_clients_what_they_can_act_on_and_keep_failure_detail_on_the_server.md`).
+pub const INTERNAL_FAILURE_PREFIX: &str = "Internal tracker error: ";
+
 impl Error {
+    /// The reply for a failure inside the tracker while doing `operation` (`announce`, `scrape`
+    /// or `request`). It holds nothing from the error that caused it.
+    #[must_use]
+    pub fn internal(operation: &str) -> Self {
+        Self {
+            failure_reason: format!("{INTERNAL_FAILURE_PREFIX}the {operation} could not be completed, try again later"),
+        }
+    }
+
+    /// Whether this is a failure inside the tracker, as [`Error::internal`] builds it.
+    #[must_use]
+    pub fn is_internal(&self) -> bool {
+        self.failure_reason.starts_with(INTERNAL_FAILURE_PREFIX)
+    }
+
+    /// Adds the request id to a failure inside the tracker, so the client can quote it. Any other
+    /// failure is returned as it is: it tells the client what to fix, and an id would not help.
+    #[must_use]
+    pub fn with_request_id(mut self, request_id: &str) -> Self {
+        if self.is_internal() {
+            self.failure_reason.push_str(" (request id: ");
+            self.failure_reason.push_str(request_id);
+            self.failure_reason.push(')');
+        }
+        self
+    }
+
     /// Returns the bencoded representation of the `Error` struct.
     ///
     /// ```rust
@@ -51,15 +86,20 @@ impl Error {
 impl From<auth::Error> for Error {
     fn from(err: auth::Error) -> Self {
         Self {
-            failure_reason: format!("Tracker authentication error: {err}"),
+            failure_reason: err.to_string(),
         }
     }
 }
 
 impl From<PeerIpResolutionError> for Error {
     fn from(err: PeerIpResolutionError) -> Self {
-        Self {
-            failure_reason: format!("Error resolving peer IP: {err}"),
+        match err {
+            // The client's request lacks the header a reverse proxy must add: the client can act.
+            PeerIpResolutionError::MissingRightMostXForwardedForIp => Self {
+                failure_reason: format!("Error resolving peer IP: {err}"),
+            },
+            // The server did not give the handler the connection address: nothing the client sent.
+            PeerIpResolutionError::MissingClientIp => Self::internal("request"),
         }
     }
 }
@@ -91,5 +131,48 @@ mod tests {
         let response = responses::error::Error::from(PeerIpResolutionError::MissingRightMostXForwardedForIp);
 
         assert_error_response(&response, "Error resolving peer IP");
+    }
+
+    #[test]
+    fn it_should_treat_a_missing_client_socket_address_as_an_internal_failure_of_the_tracker() {
+        // The client sent nothing wrong: the server did not give the handler the connection address.
+        let response = responses::error::Error::from(PeerIpResolutionError::MissingClientIp);
+
+        assert_eq!(
+            response.failure_reason,
+            "Internal tracker error: the request could not be completed, try again later"
+        );
+    }
+
+    #[test]
+    fn it_should_name_only_the_operation_in_an_internal_failure() {
+        let response = Error::internal("announce");
+
+        assert_eq!(
+            response.failure_reason,
+            "Internal tracker error: the announce could not be completed, try again later"
+        );
+        assert!(response.is_internal());
+    }
+
+    #[test]
+    fn it_should_add_the_request_id_to_an_internal_failure() {
+        let response = Error::internal("scrape").with_request_id("an-id");
+
+        assert_eq!(
+            response.failure_reason,
+            "Internal tracker error: the scrape could not be completed, try again later (request id: an-id)"
+        );
+    }
+
+    #[test]
+    fn it_should_leave_a_failure_that_is_not_internal_without_a_request_id() {
+        let response = Error {
+            failure_reason: "Authentication key expired".to_owned(),
+        }
+        .with_request_id("an-id");
+
+        assert_eq!(response.failure_reason, "Authentication key expired");
+        assert!(!response.is_internal());
     }
 }

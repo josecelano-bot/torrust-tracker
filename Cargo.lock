@@ -5100,6 +5100,7 @@ dependencies = [
  "serde_bencode",
  "serde_bytes",
  "socket2",
+ "sqlx",
  "thiserror 2.0.21",
  "tokio",
  "tokio-rustls",
