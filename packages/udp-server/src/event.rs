@@ -231,6 +231,7 @@ mod tests {
         let error = Error::InvalidRequest {
             request_parse_error: SendableRequestParseError {
                 message: "invalid request".to_string(),
+                reply_message: "invalid request".to_string(),
                 opt_connection_id: None,
                 opt_transaction_id: None,
             },

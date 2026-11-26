@@ -127,3 +127,30 @@ Commands ran with the stable toolchain (`cargo +stable test -q`).
   tracker, dropping the table, reading the header). The mapping unit tests build the cause with a
   unique marker string in its source and assert that the marker is absent from the reply, which is
   the property the rule states.
+
+### T6 UDP tracker text and the error event
+
+- **Red:** `cargo +stable test -q -p torrust-tracker-udp-server --lib error::tests::what_the_client`
+  did not compile (`no method named client_message found for enum error::Error`); green after
+  `Error::client_message` and its use in `handlers/error.rs` (239 passed in the library). Two older
+  tests that pinned the reply `tracker scrape error: Connection cookie error: cookie value is
+  expired: 1, expected > 2` were updated to the ADR text.
+- **Red by mutation for the real boundary:**
+  `cargo +stable test -q -p torrust-tracker-udp-server --test database_failure` with the reply
+  taken from `error.to_string()` again failed with `got: tracker announce error: Tracker core
+  announce error: Database error: The Sqlite3 database server returned an error: (code: 1) no such
+  table: torrents`; restored, it passes: the client reads the operation and the request id, and the
+  log line holds the driver text and the same id.
+- **Integration tests added or updated** (`--test integration`, 19 passed): a wrong connection id
+  gets `Invalid or expired connection id: send a new connect request`; a 3-byte packet gets
+  `Invalid request: Couldn't parse action`; the empty datagram gets `Invalid request: Protocol
+  identifier missing`; the whitelist refusal is `The torrent <ih> is not whitelisted on this tracker`.
+- **Event payload:** unchanged (`ErrorKind` keeps the detail, as rule 8 says); `SendableRequestParseError`
+  gained `reply_message` for the reply and keeps `message` for the event, so the short-packet event
+  text is as before.
+- **Test-design review.** The unit table builds each error from its cause and states the whole
+  expected sentence from the ADR; the cookie cases differ only in the cookie variant, so the one
+  causal difference is visible and the three variants share one expected text. The real-boundary
+  test differs from a healthy tracker only by the dropped table, reads the request id from the reply
+  text and looks for that same id in the log, so it does not restate how the id is made. The helper
+  owns the connect handshake and the announce builder.

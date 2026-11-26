@@ -78,7 +78,39 @@ async fn should_return_a_bad_request_response_when_the_client_sends_an_empty_req
     assert!(
         get_error_response_message(&response)
             .unwrap()
-            .contains("Protocol identifier missing")
+            .contains("Invalid request: Protocol identifier missing")
+    );
+
+    tracker.stop().await;
+}
+
+#[tokio::test]
+async fn should_name_the_parser_message_and_no_type_name_when_the_client_sends_a_three_byte_packet() {
+    logging::setup();
+
+    // Arrange
+    let tracker = start_ephemeral_udp_tracker().await;
+    let client = UdpTrackerClient::new(tracker.bind_address(), DEFAULT_UDP_TIMEOUT)
+        .await
+        .expect("UDP client should connect to the ephemeral tracker");
+
+    // Act
+    client
+        .client
+        .send(&[0u8, 1, 2])
+        .await
+        .expect("UDP client should send the short datagram");
+    let response_bytes = client
+        .client
+        .receive()
+        .await
+        .expect("UDP tracker should respond to the short datagram");
+    let response = Response::parse_bytes(&response_bytes, true).expect("UDP tracker response should be valid");
+
+    // Assert
+    assert_eq!(
+        get_error_response_message(&response).expect("an error response"),
+        "Invalid request: Couldn't parse action"
     );
 
     tracker.stop().await;
@@ -240,8 +272,36 @@ mod receiving_an_announce_request {
         let message = get_error_response_message(&response).expect("an error response");
         assert_names_no_source_path(&message);
         assert!(
-            message.contains(&format!("The torrent: {info_hash}, is not whitelisted")),
+            message == format!("The torrent {info_hash} is not whitelisted on this tracker"),
             "{message:?}"
+        );
+
+        env.stop().await;
+    }
+
+    #[tokio::test]
+    async fn should_tell_the_client_to_send_a_new_connect_request_and_no_clock_value_when_the_connection_id_is_wrong() {
+        logging::setup();
+
+        // Arrange
+        let cfg = configuration::ephemeral();
+        let core_config = Arc::new(cfg.core.clone());
+        let udp_tracker_config = Arc::new(cfg.udp_trackers.unwrap()[0].clone());
+        let env = torrust_tracker_udp_server::testing::environment::Started::new(&core_config, &udp_tracker_config).await;
+        let client = UdpTrackerClient::new(env.bind_address(), DEFAULT_UDP_TIMEOUT)
+            .await
+            .expect("UDP client should connect to the ephemeral tracker");
+        let tx_id = TransactionId::new(123);
+        let c_id = send_connection_request(tx_id, &client).await;
+        let wrong_connection_id = ConnectionId(c_id.0.get().wrapping_add(255).into());
+
+        // Act
+        let response = send_and_get_announce(tx_id, wrong_connection_id, random_info_hash(), &client).await;
+
+        // Assert
+        assert_eq!(
+            get_error_response_message(&response).expect("an error response"),
+            "Invalid or expired connection id: send a new connect request"
         );
 
         env.stop().await;

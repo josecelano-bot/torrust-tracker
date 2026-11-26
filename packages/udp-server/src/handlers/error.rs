@@ -56,7 +56,7 @@ pub async fn handle_error(
 
     Response::from(ErrorResponse {
         transaction_id: opt_transaction_id.unwrap_or(TransactionId(I32::new(0))),
-        message: error.to_string().into(),
+        message: error.client_message(request_id).into(),
     })
 }
 
@@ -260,13 +260,13 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn it_should_answer_with_the_error_message_and_the_request_transaction_id() {
+    async fn it_should_answer_with_the_client_message_and_the_request_transaction_id() {
         // Arrange
         let transaction_id = TransactionId(I32::new(42));
         let error = scrape_failure_with_expired_cookie();
         let expected_response = Response::from(ErrorResponse {
             transaction_id,
-            message: "tracker scrape error: Connection cookie error: cookie value is expired: 1, expected > 2".into(),
+            message: "Invalid or expired connection id: send a new connect request".into(),
         });
 
         // Act
@@ -282,7 +282,7 @@ mod tests {
         let error = scrape_failure_with_expired_cookie();
         let expected_response = Response::from(ErrorResponse {
             transaction_id: TransactionId(I32::new(0)),
-            message: "tracker scrape error: Connection cookie error: cookie value is expired: 1, expected > 2".into(),
+            message: "Invalid or expired connection id: send a new connect request".into(),
         });
 
         // Act
