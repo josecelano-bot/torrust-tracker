@@ -4,10 +4,12 @@ use std::sync::Arc;
 
 use axum::extract::{Query, State};
 use axum::response::Response;
+use axum_extra::extract::WithRejection;
 use serde::Deserialize;
 use torrust_tracker_rest_api_application::v1::use_cases::stats::StatsApiService;
 
 use super::responses::{labeled_metrics_response, labeled_stats_response, metrics_response, stats_response};
+use crate::v1::rejections::ApiRejection;
 
 #[derive(Deserialize, Debug, Default)]
 #[serde(rename_all = "lowercase")]
@@ -28,10 +30,13 @@ pub struct QueryParams {
 ///
 /// `GET /stats` serves the aggregated, unlabelled statistics. The endpoint is not deprecated; see the ADR "Define the stats
 /// and metrics endpoints and require HELP and TYPE in Prometheus output".
-pub async fn get_stats_handler(State(stats_service): State<Arc<StatsApiService>>, params: Query<QueryParams>) -> Response {
+pub async fn get_stats_handler(
+    State(stats_service): State<Arc<StatsApiService>>,
+    WithRejection(Query(params), _): WithRejection<Query<QueryParams>, ApiRejection>,
+) -> Response {
     let stats = stats_service.get_stats().await;
 
-    params.0.format.map_or_else(
+    params.format.map_or_else(
         || stats_response(&stats),
         |format| match format {
             Format::Json => stats_response(&stats),
@@ -44,10 +49,13 @@ pub async fn get_stats_handler(State(stats_service): State<Arc<StatsApiService>>
 ///
 /// `GET /metrics` serves the extendable labelled metrics of all subsystems; new metrics and labels belong here, not in
 /// `GET /stats`.
-pub async fn get_metrics_handler(State(stats_service): State<Arc<StatsApiService>>, params: Query<QueryParams>) -> Response {
+pub async fn get_metrics_handler(
+    State(stats_service): State<Arc<StatsApiService>>,
+    WithRejection(Query(params), _): WithRejection<Query<QueryParams>, ApiRejection>,
+) -> Response {
     let labeled_stats = stats_service.get_labeled_stats().await;
 
-    params.0.format.map_or_else(
+    params.format.map_or_else(
         || labeled_stats_response(&labeled_stats),
         |format| match format {
             Format::Json => labeled_stats_response(&labeled_stats),
@@ -58,11 +66,13 @@ pub async fn get_metrics_handler(State(stats_service): State<Arc<StatsApiService
 
 #[cfg(test)]
 mod tests {
+    use std::marker::PhantomData;
     use std::sync::{Arc, Mutex};
 
     use async_trait::async_trait;
     use axum::extract::{Query, State};
     use axum::http::{StatusCode, Uri};
+    use axum_extra::extract::WithRejection;
     use rstest::rstest;
     use torrust_tracker_rest_api_application::v1::ports::stats::StatsQueryPort;
     use torrust_tracker_rest_api_application::v1::use_cases::stats::StatsApiService;
@@ -70,6 +80,7 @@ mod tests {
 
     use super::{Format, QueryParams, get_metrics_handler, get_stats_handler};
     use crate::test_support::{a_labeled_stats, a_stats, observed};
+    use crate::v1::rejections::ApiRejection;
 
     type CallLog = Arc<Mutex<Vec<Call>>>;
 
@@ -134,6 +145,10 @@ mod tests {
             .expect("the test URI is valid")
     }
 
+    fn rejecting(extractor: Query<QueryParams>) -> WithRejection<Query<QueryParams>, ApiRejection> {
+        WithRejection(extractor, PhantomData)
+    }
+
     fn query(query_string: &str) -> Query<QueryParams> {
         Query::try_from_uri(&uri(query_string)).expect("the query string is valid")
     }
@@ -158,7 +173,7 @@ mod tests {
     ) {
         let (state, calls) = fake_with_log();
 
-        let response = observed(get_stats_handler(state, query(query_string)).await).await;
+        let response = observed(get_stats_handler(state, rejecting(query(query_string))).await).await;
 
         assert_eq!(
             (
@@ -185,7 +200,7 @@ mod tests {
     ) {
         let (state, calls) = fake_with_log();
 
-        let response = observed(get_metrics_handler(state, query(query_string)).await).await;
+        let response = observed(get_metrics_handler(state, rejecting(query(query_string))).await).await;
 
         assert_eq!(
             (

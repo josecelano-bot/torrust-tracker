@@ -36,7 +36,7 @@ pub async fn add_torrent_to_whitelist_handler(
         Err(_) => invalid_info_hash_param_response(&info_hash.0),
         Ok(info_hash) => match whitelist_service.add_torrent(&info_hash).await {
             Ok(()) => ok_response(),
-            Err(e) => failed_to_whitelist_torrent_response(e),
+            Err(e) => failed_to_whitelist_torrent_response(&e),
         },
     }
 }
@@ -63,7 +63,7 @@ pub async fn remove_torrent_from_whitelist_handler(
         Err(_) => invalid_info_hash_param_response(&info_hash.0),
         Ok(info_hash) => match whitelist_service.remove_torrent(&info_hash).await {
             Ok(()) => ok_response(),
-            Err(e) => failed_to_remove_torrent_from_whitelist_response(e),
+            Err(e) => failed_to_remove_torrent_from_whitelist_response(&e),
         },
     }
 }
@@ -85,7 +85,7 @@ pub async fn reload_whitelist_handler(State(whitelist_service): State<Option<Arc
 
     match whitelist_service.reload().await {
         Ok(()) => ok_response(),
-        Err(e) => failed_to_reload_whitelist_response(e),
+        Err(e) => failed_to_reload_whitelist_response(&e),
     }
 }
 
@@ -303,7 +303,7 @@ mod tests {
     /// returns that error today, so no client can see it. See the "Documented inconsistency" section of the plan
     /// `docs/issues/closed/2637-1347-add-tests-axum-rest-api-server/test-refactor-plans/v1-context-whitelist-handlers-tests.md`.
     #[rstest]
-    #[case::a_database_error(database_error as Outcome, "failed to whitelist torrent: boom")]
+    #[case::a_database_error(database_error as Outcome, "failed to whitelist torrent: internal tracker error (request id: unknown)")]
     #[case::a_capability_disabled_in_the_service(
         (|| Err(WhitelistError::DisabledByConfiguration { capability: "listed" })) as Outcome,
         "failed to whitelist torrent: listed capability is disabled by configuration"
@@ -324,7 +324,7 @@ mod tests {
 
         assert_eq!(
             observed(response).await,
-            unhandled("failed to remove torrent from whitelist: boom")
+            unhandled("failed to remove torrent from whitelist: internal tracker error (request id: unknown)")
         );
     }
 
@@ -332,6 +332,9 @@ mod tests {
     async fn it_should_answer_an_internal_server_error_when_reloading_the_whitelist_fails() {
         let response = reload_whitelist_handler(state_answering(database_error)).await;
 
-        assert_eq!(observed(response).await, unhandled("failed to reload whitelist: boom"));
+        assert_eq!(
+            observed(response).await,
+            unhandled("failed to reload whitelist: internal tracker error (request id: unknown)")
+        );
     }
 }

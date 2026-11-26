@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 use axum::extract::{Path, State};
 use axum::response::{IntoResponse, Response};
-use axum_extra::extract::Query;
+use axum_extra::extract::{Query, WithRejection};
 use serde::{Deserialize, Deserializer, de};
 use thiserror::Error;
 use torrust_info_hash::InfoHash;
@@ -15,6 +15,7 @@ use torrust_tracker_rest_api_application::v1::use_cases::torrent::TorrentApiServ
 
 use super::responses::{torrent_info_response, torrent_list_response, torrent_not_known_response};
 use crate::InfoHashParam;
+use crate::v1::rejections::ApiRejection;
 use crate::v1::responses::invalid_info_hash_param_response;
 
 /// It handles the request to get the torrent data.
@@ -83,18 +84,21 @@ pub struct QueryParams {
 ///
 /// Refer to the [API endpoint documentation](crate::v1::context::torrent#list-torrents)
 /// for more information about this endpoint.
-pub async fn get_torrents_handler(State(service): State<Arc<TorrentApiService>>, pagination: Query<QueryParams>) -> Response {
+pub async fn get_torrents_handler(
+    State(service): State<Arc<TorrentApiService>>,
+    WithRejection(Query(pagination), _): WithRejection<Query<QueryParams>, ApiRejection>,
+) -> Response {
     tracing::debug!("pagination: {:?}", pagination);
 
-    if pagination.0.info_hashes.is_empty() {
+    if pagination.info_hashes.is_empty() {
         torrent_list_response(
             service
-                .get_torrents_page(&Pagination::new_with_options(pagination.0.offset, pagination.0.limit))
+                .get_torrents_page(&Pagination::new_with_options(pagination.offset, pagination.limit))
                 .await,
         )
         .into_response()
     } else {
-        match parse_info_hashes(pagination.0.info_hashes) {
+        match parse_info_hashes(pagination.info_hashes) {
             Ok(info_hashes) => torrent_list_response(service.get_torrents(&info_hashes).await).into_response(),
             Err(err) => match err {
                 QueryParamError::InvalidInfoHash { info_hash } => invalid_info_hash_param_response(&info_hash),
@@ -143,12 +147,13 @@ where
 
 #[cfg(test)]
 mod tests {
+    use std::marker::PhantomData;
     use std::sync::{Arc, Mutex};
 
     use async_trait::async_trait;
     use axum::extract::{Path, State};
     use axum::http::{StatusCode, Uri};
-    use axum_extra::extract::Query;
+    use axum_extra::extract::{Query, WithRejection};
     use rstest::rstest;
     use serde::Deserialize;
     use torrust_info_hash::InfoHash;
@@ -160,6 +165,7 @@ mod tests {
     use super::{QueryParams, empty_string_as_none, get_torrent_handler, get_torrents_handler};
     use crate::InfoHashParam;
     use crate::test_support::{Observed, observed};
+    use crate::v1::rejections::ApiRejection;
 
     type TorrentOutcome = fn() -> Option<Torrent>;
     type ItemsOutcome = fn() -> Vec<ListItem>;
@@ -279,6 +285,10 @@ mod tests {
         Path(InfoHashParam(value.to_string()))
     }
 
+    fn rejecting(extractor: Query<QueryParams>) -> WithRejection<Query<QueryParams>, ApiRejection> {
+        WithRejection(extractor, PhantomData)
+    }
+
     fn query(query_string: &str) -> Query<QueryParams> {
         let uri: Uri = format!("/api/v1/torrents?{query_string}")
             .parse()
@@ -349,7 +359,7 @@ mod tests {
         let fake = FakeTorrentQueryPort::answering(a_torrent, two_items);
         let calls = fake.call_log();
 
-        let response = get_torrents_handler(state_with(fake), query(query_string)).await;
+        let response = get_torrents_handler(state_with(fake), rejecting(query(query_string))).await;
 
         assert_eq!(
             (observed(response).await, recorded(&calls)),
@@ -366,7 +376,7 @@ mod tests {
         let calls = fake.call_log();
         let query_string = format!("info_hash={SECOND_HASH}&info_hash={FIRST_HASH}&info_hash={FIRST_HASH}&offset=1&limit=1");
 
-        let response = get_torrents_handler(state_with(fake), query(&query_string)).await;
+        let response = get_torrents_handler(state_with(fake), rejecting(query(&query_string))).await;
 
         assert_eq!(
             (observed(response).await, recorded(&calls)),
@@ -393,7 +403,7 @@ mod tests {
         let fake = FakeTorrentQueryPort::answering(a_torrent, two_items);
         let calls = fake.call_log();
 
-        let response = get_torrents_handler(state_with(fake), query(&query_string)).await;
+        let response = get_torrents_handler(state_with(fake), rejecting(query(&query_string))).await;
 
         assert_eq!(observed(response).await, invalid_info_hash(rejected));
         assert_eq!(recorded(&calls), Vec::<Call>::new());

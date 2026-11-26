@@ -154,3 +154,33 @@ Commands ran with the stable toolchain (`cargo +stable test -q`).
   test differs from a healthy tracker only by the dropped table, reads the request id from the reply
   text and looks for that same id in the log, so it does not restate how the id is made. The helper
   owns the connect handshake and the announce builder.
+
+### T7 REST API text
+
+- **Red by mutation for the real boundary:**
+  `cargo +stable test -q -p torrust-tracker-axum-rest-api-server --test database_failure` with
+  `failed_to_add_key_response` printing the error again failed with `left: "Unhandled rejection: Err
+  { reason: \"failed to add key: The Sqlite3 database server returned an error: the database
+  rejected the statement (kind: Other, code: 1)\" }"`, `right: "... failed to add key: internal
+  tracker error (request id: <id>)"`; restored, both tests pass (2 passed). The log line of that
+  failure holds `the database rejected the statement` (for a statement that binds a key SI-A keeps
+  only the kind and the code, never the server's message) and the same request id.
+- **Existing tests that pinned the old texts** turned red with the change and were updated to the ADR
+  texts: the three token reasons (`unauthorized: send the header Authorization: Bearer <token>`,
+  `unauthorized: the token is not valid`, `unauthorized: the Authorization header must be Bearer
+  <token>`), the `failed to <operation>: internal tracker error (request id: <id>)` reasons, the
+  key duration overflow (`... 18446744073709551615 seconds is too long`) and the two query
+  parameter rejections of the torrents endpoint.
+- **New tests:** `rejections` (a real router with the production extractor wrapper: malformed JSON,
+  a wrong type, a missing field, a missing content type, a bad query parameter), the adapter test that
+  a key the tracker already holds is `AlreadyExists` and any other database failure stays a database
+  error, the `echo` cut and escape, and the internal failure reply with a scoped request id.
+- **Decision recorded in the ADR:** a duplicate key keeps its 500 in v1, with the reason `failed to
+  add key: the tracker already holds this authentication key`; the existing contract test
+  `should_fail_adding_a_key_that_already_exists_without_echoing_it` passes unchanged.
+- **Test-design review.** The database test changes one thing in the initial state (a dropped
+  table) and states the whole expected reply with the request id read from the reply's header, so
+  the production request is the Act and the expectation does not restate how the id is made. The
+  rejection table builds each request from one defect of the body or the query and states the
+  expected sentence from the ADR; the fixture helper owns only the router and the body reading.
+  The `WithRejection` wrapper is exercised through a real router, not by calling the conversion.

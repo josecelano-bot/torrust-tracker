@@ -371,7 +371,11 @@ async fn should_fail_adding_a_random_auth_key_when_the_key_duration_overflows() 
         .await
         .unwrap();
 
-    assert_bad_request(response, r#"Invalid URL: invalid auth key duration: "18446744073709551615""#).await;
+    assert_bad_request(
+        response,
+        "Invalid URL: invalid auth key duration: 18446744073709551615 seconds is too long",
+    )
+    .await;
 
     env.stop().await;
 }
@@ -796,7 +800,11 @@ mod deprecated_generate_key_endpoint {
             .await
             .unwrap();
 
-        assert_bad_request(response, r#"Invalid URL: invalid auth key duration: "18446744073709551615""#).await;
+        assert_bad_request(
+            response,
+            "Invalid URL: invalid auth key duration: 18446744073709551615 seconds is too long",
+        )
+        .await;
 
         env.stop().await;
     }

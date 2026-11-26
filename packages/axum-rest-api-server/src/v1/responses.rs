@@ -1,7 +1,12 @@
 //! Common responses for the API v1 shared by all the contexts.
+use std::error::Error;
+
 use axum::http::{StatusCode, header};
 use axum::response::{IntoResponse, Response};
 use serde::Serialize;
+use torrust_tracker_axum_server::request_id::current_request_id;
+
+use crate::API_LOG_TARGET;
 
 /* code-review:
     When Axum cannot parse a path or query param it shows a message like this:
@@ -52,7 +57,49 @@ pub fn ok_response() -> Response {
 #[must_use]
 pub fn invalid_info_hash_param_response(info_hash: &str) -> Response {
     bad_request_response(&format!(
-        "Invalid URL: invalid infohash param: string \"{info_hash}\", expected a 40 character long string"
+        "Invalid URL: invalid infohash param: string \"{}\", expected a 40 character long string",
+        echo(info_hash)
+    ))
+}
+
+/// The most characters of a client's value that a reply repeats.
+///
+/// Rule 5 of the client error text ADR
+/// (`docs/adrs/20261125175726_tell_clients_what_they_can_act_on_and_keep_failure_detail_on_the_server.md`)
+/// sets it. It is longer than any well-formed value of the tracker, so a value that is cut is already wrong.
+pub const MAX_ECHOED_CHARACTERS: usize = 64;
+
+/// `value` as a reply may repeat it: cut to [`MAX_ECHOED_CHARACTERS`], then escaped.
+///
+/// The text stays on one line. `http-protocol` keeps its own copy of this ten-line rule: the two
+/// crates share no dependency to hold it.
+#[must_use]
+pub fn echo(value: &str) -> String {
+    let mut characters = value.chars();
+    let kept: String = characters.by_ref().take(MAX_ECHOED_CHARACTERS).collect();
+    let was_cut = characters.next().is_some();
+
+    let mut echoed: String = kept.escape_debug().collect();
+    if was_cut {
+        echoed.push_str("...");
+    }
+    echoed
+}
+
+/// The `500` reply for a failure inside the tracker while doing `operation`, and the event that
+/// tells the operator why.
+///
+/// The reason names the operation and the request id and holds nothing from `error`; the `ERROR`
+/// event holds the full text of `error`, its sources included, and the same request id (rules 2
+/// and 7 of the client error text ADR). API v1 keeps the status and the
+/// `Unhandled rejection: Err { reason: ... }` frame, which API v2 replaces.
+#[must_use]
+pub fn internal_failure_response(operation: &str, error: &dyn Error) -> Response {
+    let request_id = current_request_id();
+    tracing::error!(target: API_LOG_TARGET, %request_id, operation, error = %error, "the request failed inside the tracker");
+
+    unhandled_rejection_response(format!(
+        "failed to {operation}: internal tracker error (request id: {request_id})"
     ))
 }
 
@@ -167,5 +214,33 @@ mod tests {
         let received = observed(response).await;
 
         assert_eq!(received, Observed::new(StatusCode::INTERNAL_SERVER_ERROR, TEXT, body));
+    }
+
+    #[test]
+    fn it_should_cut_and_escape_the_info_hash_that_a_reply_repeats() {
+        let reply = super::echo(&format!("a\nb{}", "c".repeat(100)));
+
+        assert_eq!(reply, format!("a\\nb{}...", "c".repeat(61)));
+    }
+
+    #[tokio::test]
+    async fn it_should_name_the_request_id_and_nothing_from_the_error_in_an_internal_failure() {
+        let marker = "TestMarkerOfTheDriver0001";
+
+        let response = torrust_tracker_axum_server::request_id::scope_request_id("a-request-id".to_string(), async {
+            super::internal_failure_response("add key", &std::io::Error::other(marker.to_string()))
+        })
+        .await;
+
+        let received = observed(response).await;
+        assert!(!received.body.contains(marker));
+        assert_eq!(
+            received,
+            Observed::new(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                TEXT,
+                r#"Unhandled rejection: Err { reason: "failed to add key: internal tracker error (request id: a-request-id)" }"#
+            )
+        );
     }
 }

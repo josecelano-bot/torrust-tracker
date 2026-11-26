@@ -18,5 +18,6 @@
 //! for more information about the authentication process.
 pub mod context;
 pub mod middlewares;
+pub mod rejections;
 pub mod responses;
 pub mod routes;

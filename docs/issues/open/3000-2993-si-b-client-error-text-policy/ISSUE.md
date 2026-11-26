@@ -138,7 +138,7 @@ Status values: `TODO`, `IN_PROGRESS`, `BLOCKED`, `DONE`.
 | T4 | DONE | Database errors and the server-side event | Non-secret driver text stays in the source and the log (SI-A has already removed driver messages that hold a secret); the `tracing` event exists; the `InvalidQuery` label is right. |
 | T5 | DONE | HTTP tracker text | As the ADR decides. |
 | T6 | DONE | UDP tracker text and the error event | As the ADR decides. |
-| T7 | TODO | REST API text | As the ADR decides, within v1's additive-only rule. |
+| T7 | DONE | REST API text | As the ADR decides, within v1's additive-only rule. |
 | T7b | TODO | Health-check API text | As the ADR decides; the per-service failure text of the HTTP and UDP checks and the report message, with the statuses unchanged (200 for a failed probe, 503 while shutting down). |
 | T8 | TODO | Skill and documentation | `handle-errors-in-code`; any documented example reply. |
 | T8b | TODO | Maintainer checkpoint | Stop for maintainer review after the last test increment, before final verification, the final commit and the pull request. |

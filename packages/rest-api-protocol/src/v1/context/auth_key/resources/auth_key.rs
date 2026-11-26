@@ -46,6 +46,9 @@ pub enum AuthKeyError {
     InvalidKey { reason: String },
     /// The private-tracker capability is disabled by configuration.
     DisabledByConfiguration { capability: &'static str },
+    /// The tracker already holds the key that was to be added. The key is the client's secret and
+    /// is not part of the error.
+    AlreadyExists,
     /// A database error occurred during the auth key operation.
     Database(String),
 }
@@ -62,6 +65,7 @@ impl fmt::Display for AuthKeyError {
             Self::DisabledByConfiguration { capability } => {
                 write!(f, "{capability} capability is disabled by configuration")
             }
+            Self::AlreadyExists => write!(f, "the tracker already holds this authentication key"),
             Self::Database(msg) => write!(f, "{msg}"),
         }
     }

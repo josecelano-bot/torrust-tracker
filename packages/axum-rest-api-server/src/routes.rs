@@ -241,10 +241,13 @@ mod tests {
     }
 
     #[rstest]
-    #[case::no_token("/api/v1/stats", r#"Unhandled rejection: Err { reason: "unauthorized" }"#)]
+    #[case::no_token(
+        "/api/v1/stats",
+        r#"Unhandled rejection: Err { reason: "unauthorized: send the header Authorization: Bearer <token>" }"#
+    )]
     #[case::a_wrong_token(
         "/api/v1/stats?token=wrong-token",
-        r#"Unhandled rejection: Err { reason: "token not valid" }"#
+        r#"Unhandled rejection: Err { reason: "unauthorized: the token is not valid" }"#
     )]
     #[tokio::test]
     async fn it_should_reject_a_request_to_an_api_route_without_a_valid_token(#[case] uri: &str, #[case] body: &str) {

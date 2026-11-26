@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use axum::extract::{self, Path, State};
 use axum::response::Response;
+use axum_extra::extract::WithRejection;
 use serde::Deserialize;
 use torrust_tracker_rest_api_application::v1::use_cases::auth_key::AuthKeyApiService;
 use torrust_tracker_rest_api_protocol::v1::context::auth_key::forms::add_key_form::AddKeyForm;
@@ -11,8 +12,9 @@ use torrust_tracker_rest_api_protocol::v1::context::auth_key::resources::auth_ke
 use super::responses::{
     auth_key_response, failed_to_add_key_response, failed_to_delete_key_response, failed_to_generate_key_response,
     failed_to_reload_keys_response, invalid_auth_key_duration_param_response, invalid_auth_key_duration_response,
-    invalid_auth_key_response,
+    invalid_auth_key_response, key_already_exists_response,
 };
+use crate::v1::rejections::ApiRejection;
 use crate::v1::responses::{disabled_by_configuration_response, invalid_auth_key_param_response, ok_response};
 
 /// It handles the request to add a new authentication key.
@@ -30,7 +32,7 @@ use crate::v1::responses::{disabled_by_configuration_response, invalid_auth_key_
 /// for more information about this endpoint.
 pub async fn add_auth_key_handler(
     State(auth_key_service): State<Option<Arc<AuthKeyApiService>>>,
-    extract::Json(add_key_form): extract::Json<AddKeyForm>,
+    WithRejection(extract::Json(add_key_form), _): WithRejection<extract::Json<AddKeyForm>, ApiRejection>,
 ) -> Response {
     let Some(auth_key_service) = auth_key_service else {
         return disabled_response();
@@ -41,6 +43,7 @@ pub async fn add_auth_key_handler(
         Err(err) => match &err {
             AuthKeyError::DurationOverflow { seconds_valid } => invalid_auth_key_duration_response(*seconds_valid),
             AuthKeyError::InvalidKey { reason } => invalid_auth_key_response(reason),
+            AuthKeyError::AlreadyExists => key_already_exists_response(),
             AuthKeyError::DisabledByConfiguration { .. } => disabled_response(),
             // `Database` and any variant added later: a generic failure response.
             _ => failed_to_add_key_response(AuthKeyErrorDisplay(&err)),
@@ -161,12 +164,14 @@ impl std::fmt::Debug for AuthKeyErrorDisplay<'_> {
 
 #[cfg(test)]
 mod tests {
+    use std::marker::PhantomData;
     use std::sync::{Arc, Mutex};
 
     use async_trait::async_trait;
     use axum::Json;
     use axum::extract::{Path, State};
     use axum::http::StatusCode;
+    use axum_extra::extract::WithRejection;
     use rstest::rstest;
     use torrust_tracker_rest_api_application::v1::ports::auth_key::AuthKeyPort;
     use torrust_tracker_rest_api_application::v1::use_cases::auth_key::AuthKeyApiService;
@@ -175,6 +180,7 @@ mod tests {
 
     use super::{KeyParam, add_auth_key_handler, delete_auth_key_handler, generate_auth_key_handler, reload_keys_handler};
     use crate::test_support::{Observed, observed};
+    use crate::v1::rejections::ApiRejection;
 
     type KeyOutcome = fn() -> Result<AuthKey, AuthKeyError>;
     type UnitOutcome = fn() -> Result<(), AuthKeyError>;
@@ -305,11 +311,14 @@ mod tests {
         AuthKeyError::Database("boom".to_string())
     }
 
-    fn a_form() -> Json<AddKeyForm> {
-        Json(AddKeyForm {
-            opt_key: Some("k1".to_string()),
-            opt_seconds_valid: Some(5),
-        })
+    fn a_form() -> WithRejection<Json<AddKeyForm>, ApiRejection> {
+        WithRejection(
+            Json(AddKeyForm {
+                opt_key: Some("k1".to_string()),
+                opt_seconds_valid: Some(5),
+            }),
+            PhantomData,
+        )
     }
 
     #[tokio::test]
@@ -347,7 +356,7 @@ mod tests {
     )]
     #[case::a_duration_overflow(
         (|| Err(AuthKeyError::DurationOverflow { seconds_valid: u64::MAX })) as KeyOutcome,
-        bad_request(r#"Invalid URL: invalid auth key duration: "18446744073709551615""#)
+        bad_request("Invalid URL: invalid auth key duration: 18446744073709551615 seconds is too long")
     )]
     #[case::an_invalid_key(
         (|| Err(AuthKeyError::InvalidKey { reason: "expected 32 characters, got 7".to_string() })) as KeyOutcome,
@@ -357,7 +366,7 @@ mod tests {
         (|| Err(AuthKeyError::DisabledByConfiguration { capability: "private" })) as KeyOutcome,
         disabled()
     )]
-    #[case::a_database_error((|| Err(database_error())) as KeyOutcome, unhandled("failed to add key: boom"))]
+    #[case::a_database_error((|| Err(database_error())) as KeyOutcome, unhandled("failed to add key: internal tracker error (request id: unknown)"))]
     #[tokio::test]
     async fn it_should_map_the_outcome_of_adding_a_key_to_a_response(#[case] outcome: KeyOutcome, #[case] expected: Observed) {
         let state = state_answering(outcome, nothing);
@@ -407,15 +416,15 @@ mod tests {
 
         assert_eq!(
             observed(response).await,
-            bad_request(r#"Invalid URL: invalid auth key duration: "18446744073709551615""#)
+            bad_request("Invalid URL: invalid auth key duration: 18446744073709551615 seconds is too long")
         );
     }
 
     #[rstest]
-    #[case::a_database_error((|| Err(database_error())) as KeyOutcome, "failed to generate key: boom")]
+    #[case::a_database_error((|| Err(database_error())) as KeyOutcome, "failed to generate key: internal tracker error (request id: unknown)")]
     #[case::an_invalid_key(
         (|| Err(AuthKeyError::InvalidKey { reason: "y".to_string() })) as KeyOutcome,
-        "failed to generate key: invalid key: y"
+        "failed to generate key: internal tracker error (request id: unknown)"
     )]
     #[tokio::test]
     async fn it_should_answer_an_internal_server_error_when_generating_a_key_fails_for_any_other_error(
@@ -461,7 +470,10 @@ mod tests {
 
         let response = delete_auth_key_handler(state, Path(KeyParam("abc".to_string()))).await;
 
-        assert_eq!(observed(response).await, unhandled("failed to delete key: boom"));
+        assert_eq!(
+            observed(response).await,
+            unhandled("failed to delete key: internal tracker error (request id: unknown)")
+        );
     }
 
     #[tokio::test]
@@ -479,6 +491,9 @@ mod tests {
 
         let response = reload_keys_handler(state).await;
 
-        assert_eq!(observed(response).await, unhandled("failed to reload keys: boom"));
+        assert_eq!(
+            observed(response).await,
+            unhandled("failed to reload keys: internal tracker error (request id: unknown)")
+        );
     }
 }

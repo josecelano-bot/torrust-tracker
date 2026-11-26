@@ -117,11 +117,7 @@ pub async fn assert_invalid_auth_key_post_param(response: Response, invalid_auth
 }
 
 pub async fn assert_unprocessable_auth_key_duration_param(response: Response, _invalid_value: &str) {
-    assert_unprocessable_content(
-        response,
-        "Failed to deserialize the JSON body into the target type: seconds_valid: invalid type",
-    )
-    .await;
+    assert_unprocessable_content(response, "Invalid request body: invalid value for the field seconds_valid").await;
 }
 
 /// The reply to a `POST /api/v1/key/<seconds>` whose segment is not a number of seconds. A key
@@ -137,11 +133,11 @@ pub async fn assert_invalid_key_duration_param(response: Response, invalid_key_d
 }
 
 pub async fn assert_token_not_valid(response: Response) {
-    assert_unhandled_rejection(response, "token not valid").await;
+    assert_unhandled_rejection(response, "unauthorized: the token is not valid").await;
 }
 
 pub async fn assert_unauthorized(response: Response) {
-    assert_unhandled_rejection(response, "unauthorized").await;
+    assert_unhandled_rejection(response, "unauthorized: send the header Authorization: Bearer <token>").await;
 }
 
 pub async fn assert_failed_to_remove_torrent_from_whitelist(response: Response) {

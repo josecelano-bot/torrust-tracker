@@ -67,6 +67,7 @@ impl AuthKeyPort for TrackerAuthKeyAdapter {
 }
 
 fn map_peer_key_error(err: torrust_tracker_core::error::PeerKeyError) -> AuthKeyError {
+    use torrust_tracker_core::databases::error::Error as DatabaseError;
     use torrust_tracker_core::error::PeerKeyError;
 
     match err {
@@ -74,6 +75,9 @@ fn map_peer_key_error(err: torrust_tracker_core::error::PeerKeyError) -> AuthKey
         PeerKeyError::InvalidKey { source } => AuthKeyError::InvalidKey {
             reason: source.to_string(),
         },
+        PeerKeyError::DatabaseError {
+            source: DatabaseError::KeyAlreadyExists { .. },
+        } => AuthKeyError::AlreadyExists,
         PeerKeyError::DatabaseError { source } => AuthKeyError::Database(source.to_string()),
         unknown => AuthKeyError::Database(unknown.to_string()),
     }
@@ -96,5 +100,38 @@ fn peer_key_to_auth_key(peer_key: PeerKey) -> AuthKey {
             valid_until: None,
             expiry_time: None,
         },
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::Arc;
+
+    use torrust_tracker_core::databases::error::Error as DatabaseError;
+    use torrust_tracker_core::error::PeerKeyError;
+    use torrust_tracker_primitives::Driver;
+    use torrust_tracker_rest_api_protocol::v1::context::auth_key::resources::auth_key::AuthKeyError;
+
+    use super::map_peer_key_error;
+
+    #[test]
+    fn it_should_report_a_key_the_tracker_already_holds_as_already_exists() {
+        let error = PeerKeyError::DatabaseError {
+            source: DatabaseError::KeyAlreadyExists { driver: Driver::Sqlite3 },
+        };
+
+        assert!(matches!(map_peer_key_error(error), AuthKeyError::AlreadyExists));
+    }
+
+    #[test]
+    fn it_should_keep_any_other_database_failure_as_a_database_error() {
+        let error = PeerKeyError::DatabaseError {
+            source: DatabaseError::ServerError {
+                source: Arc::new(std::io::Error::other("a message of the server")),
+                driver: Driver::Sqlite3,
+            },
+        };
+
+        assert!(matches!(map_peer_key_error(error), AuthKeyError::Database(_)));
     }
 }

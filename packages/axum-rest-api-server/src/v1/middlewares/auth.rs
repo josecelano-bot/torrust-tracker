@@ -170,13 +170,13 @@ fn authenticate(token: &str, tokens: &AccessTokens) -> bool {
 /// `500` error response returned when the token is missing.
 #[must_use]
 pub fn unauthorized_response() -> Response {
-    unhandled_rejection_response("unauthorized".to_string())
+    unhandled_rejection_response("unauthorized: send the header Authorization: Bearer <token>".to_string())
 }
 
 /// `500` error response when the provided token is not valid.
 #[must_use]
 pub fn token_not_valid_response() -> Response {
-    unhandled_rejection_response("token not valid".to_string())
+    unhandled_rejection_response("unauthorized: the token is not valid".to_string())
 }
 
 /// `500` error response when the provided token type is not valid.
@@ -185,7 +185,7 @@ pub fn token_not_valid_response() -> Response {
 /// understand.
 #[must_use]
 pub fn unknown_auth_data_provided_response() -> Response {
-    unhandled_rejection_response("unknown token provided".to_string())
+    unhandled_rejection_response("unauthorized: the Authorization header must be Bearer <token>".to_string())
 }
 
 #[cfg(test)]
@@ -308,7 +308,7 @@ mod tests {
                 response: Observed::new(
                     StatusCode::INTERNAL_SERVER_ERROR,
                     "text/plain; charset=utf-8",
-                    r#"Unhandled rejection: Err { reason: "token not valid" }"#
+                    r#"Unhandled rejection: Err { reason: "unauthorized: the token is not valid" }"#
                 ),
                 handler_ran: false,
             }
@@ -336,7 +336,7 @@ mod tests {
                 response: Observed::new(
                     StatusCode::INTERNAL_SERVER_ERROR,
                     "text/plain; charset=utf-8",
-                    r#"Unhandled rejection: Err { reason: "unknown token provided" }"#
+                    r#"Unhandled rejection: Err { reason: "unauthorized: the Authorization header must be Bearer <token>" }"#
                 ),
                 handler_ran: false,
             }
@@ -356,7 +356,7 @@ mod tests {
                 response: Observed::new(
                     StatusCode::INTERNAL_SERVER_ERROR,
                     "text/plain; charset=utf-8",
-                    r#"Unhandled rejection: Err { reason: "unknown token provided" }"#
+                    r#"Unhandled rejection: Err { reason: "unauthorized: the Authorization header must be Bearer <token>" }"#
                 ),
                 handler_ran: false,
             }
@@ -378,7 +378,7 @@ mod tests {
                 response: Observed::new(
                     StatusCode::INTERNAL_SERVER_ERROR,
                     "text/plain; charset=utf-8",
-                    r#"Unhandled rejection: Err { reason: "unauthorized" }"#
+                    r#"Unhandled rejection: Err { reason: "unauthorized: send the header Authorization: Bearer <token>" }"#
                 ),
                 handler_ran: false,
             }

@@ -5,7 +5,7 @@ use axum::http::{StatusCode, header};
 use axum::response::{IntoResponse, Response};
 use torrust_tracker_rest_api_protocol::v1::context::auth_key::resources::auth_key::AuthKey;
 
-use crate::v1::responses::{bad_request_response, unhandled_rejection_response};
+use crate::v1::responses::{bad_request_response, internal_failure_response, unhandled_rejection_response};
 
 /// `200` response that contains the `AuthKey` resource as json.
 ///
@@ -27,26 +27,33 @@ pub fn auth_key_response(auth_key: &AuthKey) -> Response {
 /// `500` error response when a new authentication key cannot be generated.
 #[must_use]
 pub fn failed_to_generate_key_response<E: Error>(e: E) -> Response {
-    unhandled_rejection_response(format!("failed to generate key: {e}"))
+    internal_failure_response("generate key", &e)
 }
 
 /// `500` error response when the provide key cannot be added.
 #[must_use]
 pub fn failed_to_add_key_response<E: Error>(e: E) -> Response {
-    unhandled_rejection_response(format!("failed to add key: {e}"))
+    internal_failure_response("add key", &e)
+}
+
+/// `500` error response when the key to add is already held. It is the client's mistake, so the
+/// reason says so; API v1 keeps the status, which the v2 error model corrects (`409`).
+#[must_use]
+pub fn key_already_exists_response() -> Response {
+    unhandled_rejection_response("failed to add key: the tracker already holds this authentication key".to_string())
 }
 
 /// `500` error response when an authentication key cannot be deleted.
 #[must_use]
 pub fn failed_to_delete_key_response<E: Error>(e: E) -> Response {
-    unhandled_rejection_response(format!("failed to delete key: {e}"))
+    internal_failure_response("delete key", &e)
 }
 
 /// `500` error response when the authentication keys cannot be reloaded from
 /// the database into memory.
 #[must_use]
 pub fn failed_to_reload_keys_response<E: Error>(e: E) -> Response {
-    unhandled_rejection_response(format!("failed to reload keys: {e}"))
+    internal_failure_response("reload keys", &e)
 }
 
 #[must_use]
@@ -64,5 +71,7 @@ pub fn invalid_auth_key_duration_param_response() -> Response {
 
 #[must_use]
 pub fn invalid_auth_key_duration_response(duration: u64) -> Response {
-    bad_request_response(&format!("Invalid URL: invalid auth key duration: \"{duration}\""))
+    bad_request_response(&format!(
+        "Invalid URL: invalid auth key duration: {duration} seconds is too long"
+    ))
 }
