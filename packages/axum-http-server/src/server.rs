@@ -931,7 +931,7 @@ mod tests {
     async fn it_should_report_an_error_with_the_status_when_the_health_endpoint_answers_a_failing_status() {
         assert_eq!(
             run_health_check("500 Internal Server Error").await,
-            Err("500 Internal Server Error".to_string())
+            Err("the service answered 500 Internal Server Error".to_string())
         );
     }
 }

@@ -782,7 +782,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn it_should_report_an_error_with_the_checked_url_when_nothing_listens_on_the_checked_address() {
+    async fn it_should_report_that_the_service_did_not_answer_when_nothing_listens_on_the_checked_address() {
         // Arrange
         // A bound socket that never listens: the test owns the port, so nothing else can listen on it,
         // and a connection to it is refused.
@@ -799,10 +799,10 @@ mod tests {
             .expect("the health check job should not panic");
 
         // Assert
-        let message = result.expect_err("a dead address should fail the health check");
-        assert!(
-            message.contains(&format!("{dead_address}/api/health_check")),
-            "the error should name the checked URL, got: {message}"
+        assert_eq!(
+            result,
+            Err("the service did not answer".to_string()),
+            "a dead address should fail the health check in one sentence, with no library text and no URL"
         );
     }
 
@@ -869,7 +869,7 @@ mod tests {
     async fn it_should_report_an_error_with_the_status_when_the_health_endpoint_answers_a_failing_status() {
         assert_eq!(
             run_health_check("500 Internal Server Error").await,
-            Err("500 Internal Server Error".to_string())
+            Err("the service answered 500 Internal Server Error".to_string())
         );
     }
 }

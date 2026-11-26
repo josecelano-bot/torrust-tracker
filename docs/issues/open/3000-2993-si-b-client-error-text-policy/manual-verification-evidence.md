@@ -203,3 +203,9 @@ Commands ran with the stable toolchain (`cargo +stable test -q`).
   panics) and states the whole expected sentence from the ADR; the unit test of the UDP probe uses a
   real socket peer, not a mock of the client. The helpers own the registration of the service and the
   report decoding only.
+
+The full workspace run (`cargo +stable test --no-fail-fast --tests --benches --examples --workspace
+--all-targets --all-features`, the pre-push roster) found three more unit tests of the HTTP and REST
+servers that pinned the old probe results (`500 Internal Server Error` and the checked URL in the
+reply). They were updated to `the service answered 500 Internal Server Error` and `the service did
+not answer`; the run then passed (110 test binaries ok, exit 0).
