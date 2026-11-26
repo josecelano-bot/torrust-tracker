@@ -184,3 +184,22 @@ Commands ran with the stable toolchain (`cargo +stable test -q`).
   rejection table builds each request from one defect of the body or the query and states the
   expected sentence from the ADR; the fixture helper owns only the router and the body reading.
   The `WithRejection` wrapper is exercised through a real router, not by calling the conversion.
+
+### T7b Health-check API text
+
+- **Red:** `cargo +stable test -q -p torrust-tracker-client-lib --lib check_should` failed with
+  `left: "Unrecognized UDP tracker response. Expected a valid UDP response, got: [106, 117, 110, 107]"`,
+  `right: "the service answered with an invalid response"` once the junk-peer test asked for the
+  ADR text; green after the probe returned the fixed sentences and logged the client error. The
+  health-check contract tests that pinned the old results (`error sending request`, `Timed Out`,
+  `Unrecognized UDP tracker response`) turned red with the change (4 failures) and were updated to
+  the ADR sentences; the panicked-job test now asserts the whole result
+  `Err("the health check job failed")`, so no join error text can pass.
+- **Green:** `cargo +stable test -q -p torrust-tracker-axum-health-check-api-server` (13 passed
+  integration, 13 unit, request logging 1); the shutting-down `503` test passes unchanged and the
+  failed-probe report keeps its `200` status.
+- **Test-design review.** Each contract case differs from a healthy report by one fault of one
+  service (an unreachable port, a peer that answers junk, a peer that never answers, a job that
+  panics) and states the whole expected sentence from the ADR; the unit test of the UDP probe uses a
+  real socket peer, not a mock of the client. The helpers own the registration of the service and the
+  report decoding only.

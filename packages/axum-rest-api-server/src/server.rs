@@ -267,8 +267,11 @@ pub fn check_fn_with_client(service_binding: &ServiceBinding, client: reqwest::C
     let job = tokio::spawn(async move {
         match client.get(url).send().await {
             Ok(response) if response.status().is_success() => Ok(response.status().to_string()),
-            Ok(response) => Err(response.status().to_string()),
-            Err(err) => Err(err.to_string()),
+            Ok(response) => Err(format!("the service answered {}", response.status())),
+            Err(err) => {
+                tracing::warn!(error = %err, "the health check could not reach the service");
+                Err("the service did not answer".to_string())
+            }
         }
     });
     ServiceHealthCheckJob::new(info, job)

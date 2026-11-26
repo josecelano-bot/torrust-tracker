@@ -239,51 +239,57 @@ impl UdpTrackerClient {
 /// # Errors
 ///
 /// It will return an error if it cannot bind or connect the client socket, if no reply arrives
-/// within 2 seconds (`Timed Out`), if the reply is not a connect response (`Did not Connect`), or
-/// if receiving the reply fails, for example because it is not a valid tracker response; that
-/// error names the cause.
+/// within 2 seconds, if the reply is not a connect response, or if receiving the reply fails, for
+/// example because it is not a valid tracker response.
+///
+/// Each failure is one fixed sentence that names what the probe saw and holds nothing from the
+/// client error (rule 9 of the client error text ADR,
+/// `docs/adrs/20261125175726_tell_clients_what_they_can_act_on_and_keep_failure_detail_on_the_server.md`);
+/// the client error goes to a `tracing` event.
 pub async fn check(service_binding: &ServiceBinding) -> Result<String, String> {
     let remote_addr = service_binding.bind_address();
 
     tracing::debug!("Checking Service (detail): {remote_addr:?}.");
 
     match UdpTrackerClient::new(remote_addr, DEFAULT_UDP_TIMEOUT).await {
-        Ok(client) => {
-            let connect_request = ConnectRequest {
-                transaction_id: TransactionId(I32::new(123)),
-            };
-
-            // client.send() return usize, but doesn't use here
-            match client.send(connect_request.into()).await {
-                Ok(_) => (),
-                Err(e) => tracing::debug!("Error: {e:?}."),
-            }
-
-            let process = move |response| {
-                if matches!(response, Response::Connect(_connect_response)) {
-                    Ok("Connected".to_string())
-                } else {
-                    Err("Did not Connect".to_string())
-                }
-            };
-
-            let sleep = time::sleep(Duration::from_secs(2));
-            tokio::pin!(sleep);
-
-            tokio::select! {
-                () = &mut sleep => {
-                      Err("Timed Out".to_string())
-                }
-                response = client.receive() => {
-                      // issue: #2867
-                      match response {
-                          Ok(response) => process(response),
-                          Err(e) => Err(e.to_string()),
-                      }
-                }
-            }
+        Ok(client) => probe(&client, remote_addr).await,
+        Err(e) => {
+            tracing::warn!(%remote_addr, error = ?e, "the UDP health check could not open a socket");
+            Err("the probe could not open a UDP socket".to_string())
         }
-        Err(e) => Err(format!("{e:?}")),
+    }
+}
+
+/// Sends the connect request over `client` and waits two seconds for the reply.
+async fn probe(client: &UdpTrackerClient, remote_addr: SocketAddr) -> Result<String, String> {
+    let connect_request = ConnectRequest {
+        transaction_id: TransactionId(I32::new(123)),
+    };
+
+    // client.send() return usize, but doesn't use here
+    if let Err(e) = client.send(connect_request.into()).await {
+        tracing::debug!("Error: {e:?}.");
+    }
+
+    let sleep = time::sleep(Duration::from_secs(2));
+    tokio::pin!(sleep);
+
+    tokio::select! {
+        () = &mut sleep => Err("the service did not answer within 2 seconds".to_string()),
+        // issue: #2867
+        response = client.receive() => outcome_of_the_reply(response, remote_addr),
+    }
+}
+
+/// What the reply of the service says about its health, in the fixed sentences of the check.
+fn outcome_of_the_reply(response: Result<Response, Error>, remote_addr: SocketAddr) -> Result<String, String> {
+    match response {
+        Ok(Response::Connect(_)) => Ok("Connected".to_string()),
+        Ok(_) => Err("the service did not answer with a connect response".to_string()),
+        Err(e) => {
+            tracing::warn!(%remote_addr, error = %e, "the UDP health check could not read a reply");
+            Err("the service answered with an invalid response".to_string())
+        }
     }
 }
 
@@ -315,7 +321,7 @@ mod tests {
 
     // issue: #2867
     #[tokio::test]
-    async fn check_should_return_an_error_naming_the_cause_when_the_peer_answers_with_an_invalid_response() {
+    async fn check_should_report_an_invalid_response_in_one_sentence_when_the_peer_answers_with_junk() {
         // Arrange
         let junk_answering_peer = bind_a_junk_answering_udp_peer().await;
 
@@ -324,9 +330,6 @@ mod tests {
 
         // Assert
         let error = result.expect_err("an unparsable reply should be a failed check");
-        assert!(
-            error.contains("Unrecognized UDP tracker response"),
-            "the error should name the unparsable response, got: {error}"
-        );
+        assert_eq!(error, "the service answered with an invalid response");
     }
 }

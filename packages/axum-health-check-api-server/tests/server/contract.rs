@@ -182,10 +182,10 @@ mod api {
         assert_eq!(details.binding, binding);
         assert_eq!(details.service_type, "tracker_rest_api");
         assert_eq!(details.public_url, None);
-        assert!(
-            details.result.as_ref().is_err_and(|e| e.contains("error sending request")),
-            "Expected to contain, \"error sending request\", but have message \"{:?}\".",
-            details.result
+        assert_eq!(
+            details.result,
+            Err("the service did not answer".to_string()),
+            "a service that cannot be reached should be reported in one sentence with no library text"
         );
         assert_eq!(
             details.info,
@@ -370,10 +370,10 @@ mod http {
         assert_eq!(details.service_binding, Url::parse(&format!("http://{binding}")).unwrap());
         assert_eq!(details.binding, binding);
         assert_eq!(details.service_type, "http_tracker");
-        assert!(
-            details.result.as_ref().is_err_and(|e| e.contains("error sending request")),
-            "Expected to contain, \"error sending request\", but have message \"{:?}\".",
-            details.result
+        assert_eq!(
+            details.result,
+            Err("the service did not answer".to_string()),
+            "a service that cannot be reached should be reported in one sentence with no library text"
         );
         assert_eq!(
             details.info,
@@ -486,7 +486,7 @@ mod udp {
         assert_eq!(details.service_binding, Url::parse(&format!("udp://{binding}")).unwrap());
         assert_eq!(details.binding, binding);
         assert_eq!(details.service_type, "udp_tracker");
-        assert_eq!(details.result, Err("Timed Out".to_string()));
+        assert_eq!(details.result, Err("the service did not answer within 2 seconds".to_string()));
         assert_eq!(details.info, format!("checking the udp tracker health check at: {binding}"));
 
         env.stop().await.expect("it should stop the service");
@@ -538,13 +538,10 @@ mod udp {
         assert_eq!(report.message, "health check failed".to_string());
         let details = report.details.first().expect("it should have some details");
         assert_eq!(details.binding, binding);
-        assert!(
-            details
-                .result
-                .as_ref()
-                .is_err_and(|error| error.contains("Unrecognized UDP tracker response")),
-            "the junk-answering udp service should be a failed check naming the cause, got: {:?}",
-            details.result
+        assert_eq!(
+            details.result,
+            Err("the service answered with an invalid response".to_string()),
+            "the junk-answering udp service should be a failed check in one sentence with no client error text"
         );
 
         env.stop().await.expect("it should stop the service");
@@ -734,9 +731,10 @@ mod failed_probe_job {
                 .clone()
         };
         let panicked = result_of("panicking probe");
-        assert!(
-            panicked.is_err(),
-            "the panicking probe should be a failed check, got: {panicked:?}"
+        assert_eq!(
+            panicked,
+            Err("the health check job failed".to_string()),
+            "the panicking probe should be a failed check in one sentence, with no join error text"
         );
         assert_eq!(result_of("passing probe"), Ok("200 OK".to_string()));
 

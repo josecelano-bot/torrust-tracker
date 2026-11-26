@@ -63,7 +63,7 @@ async fn probe_services(registar: &Registar<RuntimeServiceMetadata>) -> Json<Rep
         .map(|(service_binding, service_type, public_url, health_check)| async move {
             let result = health_check.job.await.unwrap_or_else(|join_error| {
                 tracing::error!(%service_binding, %join_error, "the health check job failed");
-                Err(format!("the health check job failed: {join_error}"))
+                Err("the health check job failed".to_string())
             });
 
             CheckReport {
